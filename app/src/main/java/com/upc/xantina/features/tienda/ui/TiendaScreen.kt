@@ -2,9 +2,11 @@ package com.upc.xantina.features.tienda.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +27,6 @@ fun TiendaScreen(
 ) {
     var selectedFilter by remember { mutableStateOf("Todos") }
     val products = repository.getProducts()
-
     val filters = listOf("Todos", "Métodos", "Equipos", "Accesorios", "Cafés")
     val filteredProducts = if (selectedFilter == "Todos") {
         products
@@ -33,45 +34,55 @@ fun TiendaScreen(
         products.filter { it.category == selectedFilter }
     }
 
-
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tienda 🛒") },
+                title = { Text("Tienda 🛒", color = Color.White) },
+                colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color(0xFF795548)),
                 actions = {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .background(Color.Gray, CircleShape)
+                            .background(Color.LightGray, CircleShape)
                             .clickable { onCartClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🛒", fontSize = 20.sp)
+                        Text(
+                            text = if (cartItems.isNotEmpty()) "🛒(${cartItems.size})" else "🛒",
+                            fontSize = 16.sp
+                        )
                     }
                 }
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            // Filtros deslizables horizontalmente
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filters.forEach { filter ->
                     Button(
                         onClick = { selectedFilter = filter },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedFilter == filter) Color(0xFF795548) else Color.LightGray
+                            containerColor = if (selectedFilter == filter) Color(0xFF5D4037) else Color.LightGray
                         )
                     ) {
-                        Text(filter)
+                        Text(filter, color = Color.White)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Lista de productos
             LazyColumn {
                 items(filteredProducts) { product ->
                     Row(
