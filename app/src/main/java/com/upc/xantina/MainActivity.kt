@@ -1,5 +1,5 @@
 package com.upc.xantina
-
+import com.upc.xantina.features.tienda.ui.CartScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +33,9 @@ class MainActivity : ComponentActivity() {
                 // Tab seleccionado para BottomNavigation
                 var selectedTab by remember { mutableStateOf(BottomNavTab.EXTRACCION) }
 
+                // Estado de pantalla de carrito
+                var showCart by remember { mutableStateOf(false) }
+
                 // Repositorio Tienda y carrito
                 val tiendaRepository = TiendaRepositoryImpl(ProductDatasource())
                 val cartItems = remember { mutableStateListOf<Product>() }
@@ -45,10 +48,12 @@ class MainActivity : ComponentActivity() {
                 } else {
                     Scaffold(
                         bottomBar = {
-                            XantinaBottomNavigation(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it }
-                            )
+                            if (!showCart) { // ocultar bottom nav al mostrar carrito
+                                XantinaBottomNavigation(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it }
+                                )
+                            }
                         }
                     ) { padding ->
                         Box(
@@ -56,22 +61,30 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxSize()
                                 .padding(padding)
                         ) {
-                            when (selectedTab) {
-                                BottomNavTab.EXTRACCION -> ExtraccionScreen(
-                                    onNavigateToCreate = { /* TODO */ },
-                                    onNavigateToAll = { /* TODO */ }
-                                )
-                                BottomNavTab.TIENDA -> TiendaScreen(
-                                    repository = tiendaRepository,
+                            if (showCart) {
+                                CartScreen(
                                     cartItems = cartItems,
-                                    onCartClick = { /* TODO: abrir carrito */ }
+                                    onBack = { showCart = false },
+                                    onGoToStore = { showCart = false }
                                 )
-                                BottomNavTab.CONECTA -> {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("Pantalla Conecta")
+                            } else {
+                                when (selectedTab) {
+                                    BottomNavTab.EXTRACCION -> ExtraccionScreen(
+                                        onNavigateToCreate = { /* TODO */ },
+                                        onNavigateToAll = { /* TODO */ }
+                                    )
+                                    BottomNavTab.TIENDA -> TiendaScreen(
+                                        repository = tiendaRepository,
+                                        cartItems = cartItems,
+                                        onCartClick = { showCart = true } // Mostrar carrito
+                                    )
+                                    BottomNavTab.CONECTA -> {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("Pantalla Conecta")
+                                        }
                                     }
                                 }
                             }
@@ -82,6 +95,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable

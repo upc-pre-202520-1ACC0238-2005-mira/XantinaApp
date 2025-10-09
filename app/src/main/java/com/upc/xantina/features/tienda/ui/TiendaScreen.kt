@@ -61,7 +61,7 @@ fun TiendaScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // Filtros deslizables horizontalmente
+            // Filtros horizontales
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
