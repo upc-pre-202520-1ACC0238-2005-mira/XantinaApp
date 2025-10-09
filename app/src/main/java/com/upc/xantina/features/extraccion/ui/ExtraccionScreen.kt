@@ -103,12 +103,6 @@ fun ExtraccionScreen(
                 )
             }
         }
-        
-        // Bottom Navigation fijo
-        XantinaBottomNavigation(
-            selectedTab = BottomNavTab.EXTRACCION,
-            onTabSelected = { /* TODO: Implementar navegación */ }
-        )
     }
 }
 

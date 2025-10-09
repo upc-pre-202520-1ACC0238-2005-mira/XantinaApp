@@ -4,14 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import com.upc.xantina.features.auth.ui.AuthScreen
 import com.upc.xantina.features.extraccion.ui.ExtraccionScreen
+import com.upc.xantina.features.tienda.data.datasource.ProductDatasource
+import com.upc.xantina.features.tienda.data.repository.TiendaRepositoryImpl
+import com.upc.xantina.features.tienda.domain.model.Product
+import com.upc.xantina.features.tienda.ui.TiendaScreen
+import com.upc.xantina.shared.ui.components.BottomNavTab
+import com.upc.xantina.shared.ui.components.XantinaBottomNavigation
 import com.upc.xantina.ui.theme.XantinaTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,26 +27,56 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             XantinaTheme {
+
                 var isLoggedIn by remember { mutableStateOf(false) }
-                
-                if (isLoggedIn) {
-                    ExtraccionScreen(
-                        onNavigateToCreate = {
-                            // TODO: Navegar a pantalla de crear extracción
-                        },
-                        onNavigateToAll = {
-                            // TODO: Navegar a pantalla de todas las extracciones
-                        },
+
+                // Tab seleccionado para BottomNavigation
+                var selectedTab by remember { mutableStateOf(BottomNavTab.EXTRACCION) }
+
+                // Repositorio Tienda y carrito
+                val tiendaRepository = TiendaRepositoryImpl(ProductDatasource())
+                val cartItems = remember { mutableStateListOf<Product>() }
+
+                if (!isLoggedIn) {
+                    AuthScreen(
+                        onLoginSuccess = { isLoggedIn = true },
+                        onRegisterSuccess = { isLoggedIn = true }
                     )
                 } else {
-                    AuthScreen(
-                        onLoginSuccess = {
-                            isLoggedIn = true
-                        },
-                        onRegisterSuccess = {
-                            isLoggedIn = true
+                    Scaffold(
+                        bottomBar = {
+                            XantinaBottomNavigation(
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it }
+                            )
                         }
-                    )
+                    ) { padding ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(padding)
+                        ) {
+                            when (selectedTab) {
+                                BottomNavTab.EXTRACCION -> ExtraccionScreen(
+                                    onNavigateToCreate = { /* TODO */ },
+                                    onNavigateToAll = { /* TODO */ }
+                                )
+                                BottomNavTab.TIENDA -> TiendaScreen(
+                                    repository = tiendaRepository,
+                                    cartItems = cartItems,
+                                    onCartClick = { /* TODO: abrir carrito */ }
+                                )
+                                BottomNavTab.CONECTA -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("Pantalla Conecta")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -49,15 +86,25 @@ class MainActivity : ComponentActivity() {
 @Preview(showBackground = true)
 @Composable
 fun ExtraccionScreenPreview() {
-    XantinaTheme {
-        ExtraccionScreen()
-    }
+    XantinaTheme { ExtraccionScreen() }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun AuthScreenPreview() {
+    XantinaTheme { AuthScreen() }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TiendaScreenPreview() {
     XantinaTheme {
-        AuthScreen()
+        val repository = TiendaRepositoryImpl(ProductDatasource())
+        val cartItems = remember { mutableStateListOf<Product>() }
+        TiendaScreen(
+            repository = repository,
+            cartItems = cartItems,
+            onCartClick = {}
+        )
     }
 }
