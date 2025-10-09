@@ -4,14 +4,43 @@ import com.upc.xantina.features.tienda.domain.model.Product
 
 class ProductDatasource {
 
-    fun getProducts(): List<Product> {
-        return listOf(
-            Product(1, "🫖", "V60 Cerámica", 2500.0, 5, "Métodos"),
-            Product(2, "☕", "Prensa Francesa 1L", 3200.0, 3, "Métodos"),
-            Product(3, "⚙️", "Molino Manual", 4500.0, 8, "Equipos"),
-            Product(4, "⚖️", "Báscula Digital", 1800.0, 12, "Accesorios"),
-            Product(5, "🫘", "Colombia Geisha", 1200.0, 20, "Cafés"),
-            Product(6, "🫘", "Etiopía Yirgacheffe", 950.0, 15, "Cafés")
+    // Lista simulada de productos
+    fun getProducts(): List<Product> = listOf(
+        Product(
+            id = "1",
+            name = "Caffe Mocha",
+            price = 4.53,
+            description = "A cappuccino is an approximately 150 ml (5 oz) beverage, with 25 ml of espresso coffee and 85 ml of fresh milk...",
+            emoji = "☕",
+            category = "Cafés",
+            stock = 10
+        ),
+        Product(
+            id = "2",
+            name = "Latte",
+            price = 3.99,
+            description = "Smooth milk with espresso, perfect for any time of the day...",
+            emoji = "🥛",
+            category = "Cafés",
+            stock = 15
+        ),
+        Product(
+            id = "3",
+            name = "Cappuccino",
+            price = 4.20,
+            description = "Classic Italian coffee with equal parts espresso, steamed milk, and foam...",
+            emoji = "☕",
+            category = "Cafés",
+            stock = 8
+        ),
+        Product(
+            id = "4",
+            name = "Iced Coffee",
+            price = 3.50,
+            description = "Cold coffee served over ice, refreshing and energizing...",
+            emoji = "🥶",
+            category = "Cafés Fríos",
+            stock = 12
         )
-    }
+    )
 }

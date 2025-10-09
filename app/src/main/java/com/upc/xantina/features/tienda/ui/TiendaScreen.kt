@@ -23,16 +23,13 @@ import com.upc.xantina.features.tienda.domain.repository.TiendaRepository
 fun TiendaScreen(
     repository: TiendaRepository,
     cartItems: MutableList<Product>,
-    onCartClick: () -> Unit
+    onCartClick: () -> Unit,
+    onProductClick: (Product) -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf("Todos") }
     val products = repository.getProducts()
     val filters = listOf("Todos", "Métodos", "Equipos", "Accesorios", "Cafés")
-    val filteredProducts = if (selectedFilter == "Todos") {
-        products
-    } else {
-        products.filter { it.category == selectedFilter }
-    }
+    val filteredProducts = if (selectedFilter == "Todos") products else products.filter { it.category == selectedFilter }
 
     Scaffold(
         topBar = {
@@ -56,12 +53,7 @@ fun TiendaScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            // Filtros horizontales
+        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,7 +74,6 @@ fun TiendaScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Lista de productos
             LazyColumn {
                 items(filteredProducts) { product ->
                     Row(
@@ -90,7 +81,8 @@ fun TiendaScreen(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
                             .background(Color(0xFFF5F5F5), MaterialTheme.shapes.medium)
-                            .padding(16.dp),
+                            .padding(16.dp)
+                            .clickable { onProductClick(product) }, // click abre detalle
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(product.emoji, fontSize = 32.sp)
@@ -100,9 +92,7 @@ fun TiendaScreen(
                             Text("$${product.price}", color = Color.DarkGray)
                             Text("Stock: ${product.stock}", color = Color.Gray, fontSize = 12.sp)
                         }
-                        Button(
-                            onClick = { cartItems.add(product) }
-                        ) {
+                        Button(onClick = { cartItems.add(product) }) {
                             Text("Agregar")
                         }
                     }

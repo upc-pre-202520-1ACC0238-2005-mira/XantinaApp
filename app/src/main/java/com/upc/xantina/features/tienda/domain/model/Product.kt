@@ -1,10 +1,11 @@
 package com.upc.xantina.features.tienda.domain.model
 
 data class Product(
-    val id: Int,
-    val emoji: String,
+    val id: String,
     val name: String,
     val price: Double,
-    val stock: Int,
-    val category: String
+    val description: String,
+    val emoji: String,
+    val category: String,
+    val stock: Int
 )

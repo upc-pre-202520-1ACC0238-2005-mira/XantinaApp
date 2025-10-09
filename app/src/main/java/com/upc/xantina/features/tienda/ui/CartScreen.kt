@@ -1,11 +1,11 @@
 package com.upc.xantina.features.tienda.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,7 +18,7 @@ import com.upc.xantina.features.tienda.domain.model.Product
 fun CartScreen(
     cartItems: MutableList<Product>,
     onBack: () -> Unit,
-    onGoToStore: () -> Unit // <-- añadimos callback
+    onGoToStore: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -35,70 +35,56 @@ fun CartScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.TopCenter
+                .padding(padding)
+                .padding(16.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (cartItems.isEmpty()) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .background(Color.LightGray, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("🛒", fontSize = 40.sp)
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Tu carrito está vacío", fontSize = 20.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Agrega productos para comenzar tu compra", fontSize = 16.sp, color = Color.Gray)
+            if (cartItems.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Tu carrito está vacío", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onGoToStore,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548))
+                    ) {
+                        Text("Ir a la tienda", color = Color.White)
                     }
-                } else {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        cartItems.forEach { product ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(product.emoji, fontSize = 32.sp)
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(product.name, fontSize = 18.sp)
-                                    Text("$${product.price}", color = Color.DarkGray)
-                                }
-                                Button(
-                                    onClick = { cartItems.remove(product) }
-                                ) {
-                                    Text("Eliminar")
-                                }
-                            }
+                }
+            } else {
+                cartItems.forEach { product ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(product.emoji, fontSize = 32.sp)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(product.name, fontSize = 18.sp)
+                            Text("$${product.price}", color = Color.DarkGray)
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        val total = cartItems.sumOf { it.price }
-                        Text("Total: $${total}", fontSize = 18.sp, color = Color.Black)
+                        Button(onClick = { cartItems.remove(product) }) {
+                            Text("Eliminar")
+                        }
                     }
                 }
 
-                // ---------- Botón "Ir a la tienda" ----------
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                val total = cartItems.sumOf { it.price }
+                Text("Total: $${total}", fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onGoToStore,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548)),
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(50.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548))
                 ) {
-                    Text("Ir a la tienda", color = Color.White, fontSize = 16.sp)
+                    Text("Ir a la tienda", color = Color.White)
                 }
             }
         }
