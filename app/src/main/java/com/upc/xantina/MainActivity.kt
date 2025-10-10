@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
 
                 val tiendaRepository = TiendaRepositoryImpl(ProductDatasource())
                 val cartItems = remember { mutableStateListOf<Product>() }
+                val favoriteProducts = remember { mutableStateListOf<Product>() }
 
                 var showCart by remember { mutableStateOf(false) }
                 var showProductDetail by remember { mutableStateOf<Product?>(null) }
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
+
                                 showProductDetail != null -> {
                                     ProductDetailScreen(
                                         product = showProductDetail!!,
@@ -87,6 +89,7 @@ class MainActivity : ComponentActivity() {
                                         onBack = { showProductDetail = null }
                                     )
                                 }
+
                                 showOrderScreen != null -> {
                                     OrderScreen(
                                         orderItem = showOrderScreen!!,
@@ -94,26 +97,31 @@ class MainActivity : ComponentActivity() {
                                         onOrderConfirmed = { showOrderScreen = null }
                                     )
                                 }
+
                                 showProfile -> {
                                     ProfileScreen(
-                                        onBack = { showProfile = false }
+                                        onBack = { showProfile = false },
+                                        favoriteProducts = favoriteProducts
                                     )
                                 }
+
                                 else -> {
                                     when (selectedTab) {
                                         BottomNavTab.EXTRACCION -> ExtraccionScreen(
                                             onNavigateToCreate = { /* TODO */ },
                                             onNavigateToAll = { /* TODO */ }
                                         )
+
                                         BottomNavTab.TIENDA -> TiendaScreen(
                                             repository = tiendaRepository,
-                                            cartItems = cartItems,
                                             onCartClick = { showCart = true },
                                             onProductClick = { product -> showProductDetail = product }
                                         )
+
                                         BottomNavTab.CONECTA -> ConectaScreen(
                                             onProfileClick = { showProfile = true }
                                         )
+
                                         else -> {}
                                     }
                                 }
@@ -123,86 +131,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewCartScreen() {
-    val cartItems = remember { mutableStateListOf<Product>() }
-    XantinaTheme {
-        CartScreen(
-            cartItems = cartItems,
-            onBack = {},
-            onGoToStore = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewProductDetailScreen() {
-    val dummyProduct = Product(
-        id = "1",
-        name = "Caffe Mocha",
-        price = 4.53,
-        description = "A cappuccino is an approximately 150 ml (5 oz) beverage...",
-        emoji = "☕",
-        category = "Cafés",
-        stock = 5
-    )
-
-    XantinaTheme {
-        ProductDetailScreen(
-            product = dummyProduct,
-            onBack = {},
-            onAddToCart = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewOrderScreen() {
-    val dummyProduct = Product(
-        id = "1",
-        name = "Caffe Mocha",
-        price = 4.53,
-        description = "A cappuccino is an approximately 150 ml (5 oz) beverage...",
-        emoji = "☕",
-        category = "Cafés",
-        stock = 5
-    )
-
-    val dummyOrder = OrderItem(
-        product = dummyProduct,
-        quantity = 1,
-        size = "M",
-        temperature = "Hot",
-        note = ""
-    )
-
-    XantinaTheme {
-        OrderScreen(
-            orderItem = dummyOrder,
-            onBack = {},
-            onOrderConfirmed = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewTiendaScreen() {
-    val repository = TiendaRepositoryImpl(ProductDatasource())
-    val cartItems = remember { mutableStateListOf<Product>() }
-
-    XantinaTheme {
-        TiendaScreen(
-            repository = repository,
-            cartItems = cartItems,
-            onCartClick = {},
-            onProductClick = {}
-        )
     }
 }

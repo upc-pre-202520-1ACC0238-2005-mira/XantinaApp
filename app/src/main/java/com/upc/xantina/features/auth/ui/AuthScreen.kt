@@ -1,35 +1,16 @@
 package com.upc.xantina.features.auth.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.upc.xantina.shared.ui.components.AuthTab
-import com.upc.xantina.shared.ui.components.BackgroundGradient
-import com.upc.xantina.shared.ui.components.XantinaButton
-import com.upc.xantina.shared.ui.components.XantinaLogo
-import com.upc.xantina.shared.ui.components.XantinaTabSelector
-import com.upc.xantina.shared.ui.components.XantinaTextField
-import com.upc.xantina.shared.ui.theme.XantinaBackground
-import com.upc.xantina.shared.ui.theme.XantinaCardBackground
+import androidx.compose.ui.graphics.Color
+import com.upc.xantina.shared.ui.components.*
 
 @Composable
 fun AuthScreen(
@@ -43,6 +24,10 @@ fun AuthScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    fun isValidEmail(email: String): Boolean {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
     BackgroundGradient {
         Column(
             modifier = Modifier
@@ -53,27 +38,23 @@ fun AuthScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Spacer(modifier = Modifier.height(40.dp))
-            
-            // Logo y título - más prominente
+
             XantinaLogo(
                 modifier = Modifier.padding(bottom = 48.dp)
             )
-            
-            // Selector de tabs con mejor diseño
+
             XantinaTabSelector(
                 selectedTab = selectedTab,
                 onTabSelected = { tab ->
                     selectedTab = tab
                     errorMessage = null
-                    // Limpiar campos al cambiar tab
                     email = ""
                     password = ""
                     name = ""
                 },
                 modifier = Modifier.padding(bottom = 32.dp)
             )
-            
-            // Formulario con mejor espaciado
+
             when (selectedTab) {
                 AuthTab.LOGIN -> {
                     LoginForm(
@@ -82,14 +63,25 @@ fun AuthScreen(
                         password = password,
                         onPasswordChange = { password = it },
                         onLoginClick = {
-                            // TODO: Implementar lógica de login
-                            isLoading = true
-                            // Simular llamada
-                            onLoginSuccess()
+                            when {
+                                email.isBlank() || password.isBlank() -> {
+                                    errorMessage = "Por favor ingresa tu correo y contraseña."
+                                }
+                                !isValidEmail(email) -> {
+                                    errorMessage = "El correo ingresado no tiene un formato válido."
+                                }
+                                else -> {
+                                    isLoading = true
+                                    errorMessage = null
+                                    onLoginSuccess()
+                                }
+                            }
                         },
-                        isLoading = isLoading
+                        isLoading = isLoading,
+                        errorMessage = errorMessage
                     )
                 }
+
                 AuthTab.REGISTER -> {
                     RegisterForm(
                         name = name,
@@ -99,16 +91,26 @@ fun AuthScreen(
                         password = password,
                         onPasswordChange = { password = it },
                         onRegisterClick = {
-                            // TODO: Implementar lógica de registro
-                            isLoading = true
-                            // Simular llamada
-                            onRegisterSuccess()
+                            when {
+                                name.isBlank() || email.isBlank() || password.isBlank() -> {
+                                    errorMessage = "Completa todos los campos antes de registrarte."
+                                }
+                                !isValidEmail(email) -> {
+                                    errorMessage = "El correo ingresado no tiene un formato válido."
+                                }
+                                else -> {
+                                    isLoading = true
+                                    errorMessage = null
+                                    onRegisterSuccess()
+                                }
+                            }
                         },
-                        isLoading = isLoading
+                        isLoading = isLoading,
+                        errorMessage = errorMessage
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(60.dp))
         }
     }
@@ -121,7 +123,8 @@ private fun LoginForm(
     password: String,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
-    isLoading: Boolean
+    isLoading: Boolean,
+    errorMessage: String?
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -129,11 +132,11 @@ private fun LoginForm(
         XantinaTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = "Email",
+            label = "Correo electrónico",
             placeholder = "tu@email.com",
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+            keyboardType = KeyboardType.Email
         )
-        
+
         XantinaTextField(
             value = password,
             onValueChange = onPasswordChange,
@@ -141,11 +144,19 @@ private fun LoginForm(
             placeholder = "........",
             isPassword = true
         )
-        
+
+        if (!errorMessage.isNullOrEmpty()) {
+            Text(
+                text = errorMessage,
+                color = Color.Red,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
         XantinaButton(
             text = "Iniciar Sesión",
             onClick = onLoginClick,
-            enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+            enabled = !isLoading
         )
     }
 }
@@ -159,7 +170,8 @@ private fun RegisterForm(
     password: String,
     onPasswordChange: (String) -> Unit,
     onRegisterClick: () -> Unit,
-    isLoading: Boolean
+    isLoading: Boolean,
+    errorMessage: String?
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -170,15 +182,15 @@ private fun RegisterForm(
             label = "Nombre",
             placeholder = "Tu nombre"
         )
-        
+
         XantinaTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = "Email",
+            label = "Correo electrónico",
             placeholder = "tu@email.com",
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+            keyboardType = KeyboardType.Email
         )
-        
+
         XantinaTextField(
             value = password,
             onValueChange = onPasswordChange,
@@ -186,11 +198,19 @@ private fun RegisterForm(
             placeholder = "........",
             isPassword = true
         )
-        
+
+        if (!errorMessage.isNullOrEmpty()) {
+            Text(
+                text = errorMessage,
+                color = Color.Red,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
         XantinaButton(
             text = "Crear Cuenta",
             onClick = onRegisterClick,
-            enabled = !isLoading && name.isNotBlank() && email.isNotBlank() && password.isNotBlank()
+            enabled = !isLoading
         )
     }
 }
