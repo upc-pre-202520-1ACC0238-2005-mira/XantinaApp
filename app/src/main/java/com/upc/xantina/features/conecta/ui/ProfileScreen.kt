@@ -1,6 +1,7 @@
 package com.upc.xantina.features.profile.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,7 +22,7 @@ fun ProfileScreen(
     onBack: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header
+        // Header con botón de retroceso
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -29,13 +30,29 @@ fun ProfileScreen(
                 .background(XantinaPrimary),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = "Perfil",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(start = 16.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxHeight()
+            ) {
+                // Botón de retroceso
+                Text(
+                    text = "←",
+                    fontSize = 24.sp,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(start = 16.dp)
+                        .clickable { onBack() }
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Text(
+                    text = "Perfil",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
