@@ -94,5 +94,5 @@ private fun BottomNavItem(
 }
 
 enum class BottomNavTab {
-    EXTRACCION, TIENDA, CONECTA
+    EXTRACCION, TIENDA, CONECTA, PROFILE
 }

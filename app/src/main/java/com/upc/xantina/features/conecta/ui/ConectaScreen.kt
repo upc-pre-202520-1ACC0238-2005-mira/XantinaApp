@@ -11,10 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ConectaScreen(
@@ -44,15 +44,18 @@ fun ConectaScreen(
                 )
             }
 
-            // Icono de perfil (clickable)
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Perfil",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clickable { onProfileClick() }
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { onProfileClick() }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Perfil",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text("Mi Perfil", color = Color.White, fontSize = 12.sp)
+            }
         }
 
         // Publicación de ejemplo
@@ -85,11 +88,10 @@ fun ConectaScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp)
-                        .background(Color(0xFF6A1B9A), RoundedCornerShape(8.dp)),
+                        .height(120.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Taza de café", color = Color.White)
+                    Text("☕", fontSize = 64.sp)
                 }
             }
         }

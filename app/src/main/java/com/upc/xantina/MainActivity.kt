@@ -21,6 +21,8 @@ import com.upc.xantina.features.tienda.ui.CartScreen
 import com.upc.xantina.features.tienda.ui.OrderScreen
 import com.upc.xantina.features.tienda.ui.ProductDetailScreen
 import com.upc.xantina.features.tienda.ui.TiendaScreen
+import com.upc.xantina.features.conecta.ui.ConectaScreen
+import com.upc.xantina.features.profile.ui.ProfileScreen
 import com.upc.xantina.shared.ui.components.BottomNavTab
 import com.upc.xantina.shared.ui.components.XantinaBottomNavigation
 import com.upc.xantina.ui.theme.XantinaTheme
@@ -40,6 +42,7 @@ class MainActivity : ComponentActivity() {
                 var showCart by remember { mutableStateOf(false) }
                 var showProductDetail by remember { mutableStateOf<Product?>(null) }
                 var showOrderScreen by remember { mutableStateOf<OrderItem?>(null) }
+                var showProfile by remember { mutableStateOf(false) }
 
                 if (!isLoggedIn) {
                     AuthScreen(
@@ -49,7 +52,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     Scaffold(
                         bottomBar = {
-                            if (!showCart && showProductDetail == null && showOrderScreen == null) {
+                            if (!showCart && showProductDetail == null && showOrderScreen == null && !showProfile) {
                                 XantinaBottomNavigation(
                                     selectedTab = selectedTab,
                                     onTabSelected = { selectedTab = it }
@@ -88,9 +91,12 @@ class MainActivity : ComponentActivity() {
                                     OrderScreen(
                                         orderItem = showOrderScreen!!,
                                         onBack = { showOrderScreen = null },
-                                        onOrderConfirmed = {
-                                            showOrderScreen = null
-                                        }
+                                        onOrderConfirmed = { showOrderScreen = null }
+                                    )
+                                }
+                                showProfile -> {
+                                    ProfileScreen(
+                                        onBack = { showProfile = false }
                                     )
                                 }
                                 else -> {
@@ -103,18 +109,12 @@ class MainActivity : ComponentActivity() {
                                             repository = tiendaRepository,
                                             cartItems = cartItems,
                                             onCartClick = { showCart = true },
-                                            onProductClick = { product ->
-                                                showProductDetail = product
-                                            }
+                                            onProductClick = { product -> showProductDetail = product }
                                         )
-                                        BottomNavTab.CONECTA -> {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text("Pantalla Conecta")
-                                            }
-                                        }
+                                        BottomNavTab.CONECTA -> ConectaScreen(
+                                            onProfileClick = { showProfile = true }
+                                        )
+                                        else -> {}
                                     }
                                 }
                             }
