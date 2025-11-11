@@ -20,7 +20,11 @@ import com.upc.xantina.features.profile.ui.ProfileScreen
 import com.upc.xantina.shared.ui.components.BottomNavTab
 import com.upc.xantina.shared.ui.components.XantinaBottomNavigation
 import com.upc.xantina.ui.theme.XantinaTheme
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.upc.xantina.features.auth.presentation.viewmodel.AuthViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,8 +32,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             XantinaTheme {
-
-                var isLoggedIn by remember { mutableStateOf(false) }
+                val authViewModel: AuthViewModel = hiltViewModel()
+                val authUiState by authViewModel.uiState.collectAsState()
+                val isLoggedIn = authUiState.isAuthenticated
                 var selectedTab by remember { mutableStateOf(BottomNavTab.EXTRACCION) }
 
                 var showProfile by remember { mutableStateOf(false) }
@@ -43,8 +48,7 @@ class MainActivity : ComponentActivity() {
                 // AUTENTICACION
                 if (!isLoggedIn) {
                     AuthScreen(
-                        onLoginSuccess = { isLoggedIn = true },
-                        onRegisterSuccess = { isLoggedIn = true }
+                        viewModel = authViewModel
                     )
                     return@XantinaTheme
                 }
