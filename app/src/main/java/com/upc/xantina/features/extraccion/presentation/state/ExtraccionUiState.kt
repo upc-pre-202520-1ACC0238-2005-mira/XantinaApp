@@ -7,6 +7,14 @@ data class ExtraccionUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val metodos: List<MetodoExtraccion> = emptyList(),
-    val extraccionesRecientes: List<Extraccion> = emptyList()
+    val extraccionesRecientes: List<Extraccion> = emptyList(),
+    val selectedFiltro: MetodoFiltro = MetodoFiltro.TODOS,
+    val isSaving: Boolean = false,
+    val successMessage: String? = null
 )
+
+enum class MetodoFiltro {
+    TODOS,
+    MIS_METODOS
+}
 

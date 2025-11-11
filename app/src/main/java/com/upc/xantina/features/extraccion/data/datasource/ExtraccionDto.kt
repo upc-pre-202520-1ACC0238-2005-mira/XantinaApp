@@ -15,6 +15,7 @@ data class ExtraccionDto(
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,
     val tiempoExtraccion: Int? = null,
+    val esPublica: Boolean = true,
     val createdAt: String,
     val updatedAt: String? = null
 )
@@ -32,7 +33,8 @@ data class CreateExtraccionRequest(
     val gramosCafe: Double? = null,
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,
-    val tiempoExtraccion: Int? = null
+    val tiempoExtraccion: Int? = null,
+    val esPublica: Boolean = true
 )
 
 /**
@@ -49,5 +51,6 @@ data class UpdateExtraccionRequest(
     val gramosCafe: Double? = null,
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,
-    val tiempoExtraccion: Int? = null
+    val tiempoExtraccion: Int? = null,
+    val esPublica: Boolean? = null
 )

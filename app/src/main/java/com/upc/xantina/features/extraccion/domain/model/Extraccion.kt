@@ -18,7 +18,8 @@ data class Extraccion(
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,
     val tiempoExtraccion: Int? = null,
-    val usuarioId: String
+    val usuarioId: String,
+    val esPublica: Boolean = true
 ) {
     /**
      * Valida que la calificación esté en el rango correcto (1-5)

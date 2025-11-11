@@ -3,6 +3,7 @@ package com.upc.xantina.features.extraccion.infrastructure.di
 import com.upc.xantina.features.extraccion.domain.repository.ExtraccionRepository
 import com.upc.xantina.features.extraccion.domain.usecase.GetExtraccionesRecientesUseCase
 import com.upc.xantina.features.extraccion.domain.usecase.GetMetodosExtraccionUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.GuardarExtraccionUseCase
 import com.upc.xantina.features.extraccion.infrastructure.repository.ExtraccionRepositoryImpl
 import dagger.Binds
 import dagger.Module
@@ -35,5 +36,10 @@ object ExtraccionUseCaseModule {
     fun provideGetExtraccionesRecientesUseCase(
         repository: ExtraccionRepository
     ): GetExtraccionesRecientesUseCase = GetExtraccionesRecientesUseCase(repository)
+
+    @Provides
+    fun provideGuardarExtraccionUseCase(
+        repository: ExtraccionRepository
+    ): GuardarExtraccionUseCase = GuardarExtraccionUseCase(repository)
 }
 

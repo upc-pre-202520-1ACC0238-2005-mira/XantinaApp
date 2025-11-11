@@ -1,7 +1,10 @@
 package com.upc.xantina.features.extraccion.infrastructure.api
 
+import com.upc.xantina.features.extraccion.data.datasource.CreateExtraccionRequest
 import com.upc.xantina.features.extraccion.data.datasource.ExtraccionDto
 import retrofit2.http.GET
+import retrofit2.http.Body
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 /**
@@ -15,5 +18,10 @@ interface ExtraccionApiService {
         @Query("limit") limit: Int? = null,
         @Query("metodo") metodo: String? = null
     ): List<ExtraccionDto>
+
+    @POST("extraccion")
+    suspend fun crearExtraccion(
+        @Body request: CreateExtraccionRequest
+    ): ExtraccionDto
 }
 

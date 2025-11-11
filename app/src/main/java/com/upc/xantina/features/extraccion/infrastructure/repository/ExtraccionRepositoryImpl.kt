@@ -23,22 +23,8 @@ class ExtraccionRepositoryImpl @Inject constructor(
             runCatching {
                 val extraccionesDto = remoteDataSource.obtenerExtracciones()
                 val extracciones = ExtraccionMapper.toDomainList(extraccionesDto)
-
                 extracciones
-                    .groupBy { it.metodoExtraccion.lowercase() }
-                    .map { (_, items) ->
-                        val primero = items.first()
-                        MetodoExtraccion(
-                            id = primero.metodoExtraccion,
-                            nombre = primero.metodoExtraccion,
-                            descripcion = primero.notas ?: "Última receta: ${primero.nombreCafe}",
-                            tiempoPreparacion = primero.tiempoExtraccion?.let { "$it s" } ?: "—",
-                            icono = primero.metodoExtraccion,
-                            dificultad = inferirDificultad(primero),
-                            temperatura = primero.temperaturaAgua,
-                            ratio = primero.calcularRatio()
-                        )
-                    }
+                    .map { toMetodoExtraccion(it) }
                     .sortedBy { it.nombre }
             }.mapError()
         }
@@ -46,20 +32,11 @@ class ExtraccionRepositoryImpl @Inject constructor(
     override suspend fun getMetodoExtraccionById(id: String): Result<MetodoExtraccion?> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val extracciones = remoteDataSource.obtenerExtracciones(metodo = id)
-                extracciones.firstOrNull()?.let { dto ->
-                    val dominio = ExtraccionMapper.toDomain(dto)
-                    MetodoExtraccion(
-                        id = dominio.metodoExtraccion,
-                        nombre = dominio.metodoExtraccion,
-                        descripcion = dominio.notas ?: "Receta destacada: ${dominio.nombreCafe}",
-                        tiempoPreparacion = dominio.tiempoExtraccion?.let { "$it s" } ?: "—",
-                        icono = dominio.metodoExtraccion,
-                        dificultad = inferirDificultad(dominio),
-                        temperatura = dominio.temperaturaAgua,
-                        ratio = dominio.calcularRatio()
-                    )
-                }
+                val extraccionesDto = remoteDataSource.obtenerExtracciones()
+                val extracciones = ExtraccionMapper.toDomainList(extraccionesDto)
+                extracciones
+                    .firstOrNull { it.id == id }
+                    ?.let { toMetodoExtraccion(it) }
             }.mapError()
         }
 
@@ -91,12 +68,32 @@ class ExtraccionRepositoryImpl @Inject constructor(
         }.mapError()
     }
 
-    override suspend fun guardarExtraccion(extraccion: Extraccion): Result<Extraccion> {
-        return Result.failure(UnsupportedOperationException("No implementado aún"))
-    }
+    override suspend fun guardarExtraccion(extraccion: Extraccion): Result<Extraccion> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = ExtraccionMapper.toCreateRequest(extraccion)
+                val dto = remoteDataSource.crearExtraccion(request)
+                ExtraccionMapper.toDomain(dto)
+            }.mapError()
+        }
 
     override suspend fun actualizarExtraccion(extraccion: Extraccion): Result<Extraccion> {
         return Result.failure(UnsupportedOperationException("No implementado aún"))
+    }
+
+    private fun toMetodoExtraccion(extraccion: Extraccion): MetodoExtraccion {
+        return MetodoExtraccion(
+            id = extraccion.id ?: "${extraccion.metodoExtraccion}-${extraccion.usuarioId}",
+            nombre = extraccion.metodoExtraccion,
+            descripcion = extraccion.notas ?: "Receta: ${extraccion.nombreCafe}",
+            tiempoPreparacion = extraccion.tiempoExtraccion?.let { "$it s" } ?: "—",
+            icono = extraccion.metodoExtraccion,
+            dificultad = inferirDificultad(extraccion),
+            temperatura = extraccion.temperaturaAgua,
+            ratio = extraccion.calcularRatio(),
+            creadorId = extraccion.usuarioId,
+            esPublica = extraccion.esPublica
+        )
     }
 
     override suspend fun eliminarExtraccion(extraccionId: String): Result<Unit> {

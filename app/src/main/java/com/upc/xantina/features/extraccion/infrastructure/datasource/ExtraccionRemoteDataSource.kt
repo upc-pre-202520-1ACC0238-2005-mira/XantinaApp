@@ -1,5 +1,6 @@
 package com.upc.xantina.features.extraccion.infrastructure.datasource
 
+import com.upc.xantina.features.extraccion.data.datasource.CreateExtraccionRequest
 import com.upc.xantina.features.extraccion.data.datasource.ExtraccionDto
 import com.upc.xantina.features.extraccion.infrastructure.api.ExtraccionApiService
 import javax.inject.Inject
@@ -21,6 +22,10 @@ class ExtraccionRemoteDataSource @Inject constructor(
             limit = limit,
             metodo = metodo
         )
+    }
+
+    suspend fun crearExtraccion(request: CreateExtraccionRequest): ExtraccionDto {
+        return apiService.crearExtraccion(request)
     }
 }
 

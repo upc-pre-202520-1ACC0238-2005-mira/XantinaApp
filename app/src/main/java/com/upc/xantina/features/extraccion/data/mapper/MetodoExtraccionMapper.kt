@@ -21,7 +21,9 @@ object MetodoExtraccionMapper {
             icono = dto.icono,
             dificultad = mapDificultad(dto.dificultad),
             temperatura = dto.temperatura,
-            ratio = dto.ratio
+            ratio = dto.ratio,
+            creadorId = "",
+            esPublica = true
         )
     }
     

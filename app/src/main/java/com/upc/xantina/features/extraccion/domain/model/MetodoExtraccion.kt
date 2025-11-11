@@ -12,7 +12,9 @@ data class MetodoExtraccion(
     val icono: String,
     val dificultad: Dificultad = Dificultad.INTERMEDIO,
     val temperatura: Int? = null,
-    val ratio: String? = null
+    val ratio: String? = null,
+    val creadorId: String,
+    val esPublica: Boolean = true
 ) {
     /**
      * Obtiene el tiempo de preparación en minutos

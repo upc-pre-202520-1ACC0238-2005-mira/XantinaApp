@@ -39,7 +39,8 @@ object ExtraccionMapper {
             mililitrosAgua = dto.mililitrosAgua,
             temperaturaAgua = dto.temperaturaAgua,
             tiempoExtraccion = dto.tiempoExtraccion,
-            usuarioId = dto.usuarioId
+            usuarioId = dto.usuarioId,
+            esPublica = dto.esPublica
         )
     }
 
@@ -59,8 +60,25 @@ object ExtraccionMapper {
             mililitrosAgua = domain.mililitrosAgua,
             temperaturaAgua = domain.temperaturaAgua,
             tiempoExtraccion = domain.tiempoExtraccion,
+            esPublica = domain.esPublica,
             createdAt = domain.fechaHora.format(isoLocalFormatter),
             updatedAt = null
+        )
+    }
+
+    fun toCreateRequest(domain: Extraccion): CreateExtraccionRequest {
+        return CreateExtraccionRequest(
+            nombre = domain.nombreCafe,
+            metodo = domain.metodoExtraccion,
+            ratio = domain.calcularRatio() ?: domain.ratio.orEmpty(),
+            usuarioId = domain.usuarioId,
+            notas = domain.notas,
+            calificacion = domain.calificacion,
+            gramosCafe = domain.gramosCafe,
+            mililitrosAgua = domain.mililitrosAgua,
+            temperaturaAgua = domain.temperaturaAgua,
+            tiempoExtraccion = domain.tiempoExtraccion,
+            esPublica = domain.esPublica
         )
     }
 
@@ -79,7 +97,8 @@ object ExtraccionMapper {
             mililitrosAgua = request.mililitrosAgua,
             temperaturaAgua = request.temperaturaAgua,
             tiempoExtraccion = request.tiempoExtraccion,
-            usuarioId = request.usuarioId
+            usuarioId = request.usuarioId,
+            esPublica = request.esPublica
         )
     }
 
