@@ -1,37 +1,38 @@
 package com.upc.xantina.features.extraccion.data.datasource
 
-import java.time.LocalDateTime
-
 /**
- * DTO para extracciones de café
+ * DTO para extracciones de café provenientes del backend.
  */
 data class ExtraccionDto(
     val id: String? = null,
-    val nombreCafe: String,
-    val metodoExtraccion: String,
-    val fechaHora: String, // ISO string format
-    val calificacion: Int,
+    val nombre: String,
+    val metodo: String,
+    val ratio: String,
     val notas: String? = null,
+    val usuarioId: String,
+    val calificacion: Int? = null,
     val gramosCafe: Double? = null,
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,
     val tiempoExtraccion: Int? = null,
-    val usuarioId: String
+    val createdAt: String,
+    val updatedAt: String? = null
 )
 
 /**
  * DTO para crear una nueva extracción
  */
 data class CreateExtraccionRequest(
-    val nombreCafe: String,
-    val metodoExtraccion: String,
-    val calificacion: Int,
+    val nombre: String,
+    val metodo: String,
+    val ratio: String,
+    val usuarioId: String,
     val notas: String? = null,
+    val calificacion: Int? = null,
     val gramosCafe: Double? = null,
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,
-    val tiempoExtraccion: Int? = null,
-    val usuarioId: String
+    val tiempoExtraccion: Int? = null
 )
 
 /**
@@ -39,10 +40,12 @@ data class CreateExtraccionRequest(
  */
 data class UpdateExtraccionRequest(
     val id: String,
-    val nombreCafe: String? = null,
-    val metodoExtraccion: String? = null,
-    val calificacion: Int? = null,
+    val nombre: String? = null,
+    val metodo: String? = null,
+    val ratio: String? = null,
+    val usuarioId: String? = null,
     val notas: String? = null,
+    val calificacion: Int? = null,
     val gramosCafe: Double? = null,
     val mililitrosAgua: Double? = null,
     val temperaturaAgua: Int? = null,

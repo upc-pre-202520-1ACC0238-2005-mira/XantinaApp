@@ -146,6 +146,7 @@ class MainActivity : ComponentActivity() {
                         when (selectedTab) {
 
                             BottomNavTab.EXTRACCION -> ExtraccionScreen(
+                                userId = authUiState.user?.id,
                                 onNavigateToCreate = { },
                                 onNavigateToAll = { },
                                 onMethodClick = { metodo ->

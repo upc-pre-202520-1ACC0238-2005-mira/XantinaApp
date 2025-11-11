@@ -11,7 +11,8 @@ data class Extraccion(
     val nombreCafe: String,
     val metodoExtraccion: String,
     val fechaHora: LocalDateTime,
-    val calificacion: Int,
+    val calificacion: Int = 0,
+    val ratio: String? = null,
     val notas: String? = null,
     val gramosCafe: Double? = null,
     val mililitrosAgua: Double? = null,
@@ -63,10 +64,13 @@ data class Extraccion(
     /**
      * Calcula el ratio café/agua si ambos valores están disponibles
      */
-    fun getRatio(): String? {
+    fun calcularRatio(): String? {
+        if (!ratio.isNullOrBlank()) {
+            return ratio
+        }
         return if (gramosCafe != null && mililitrosAgua != null && mililitrosAgua > 0) {
-            val ratio = gramosCafe / (mililitrosAgua / 1000)
-            "1:${String.format("%.0f", 1000 / gramosCafe * mililitrosAgua)}"
+            val proporcion = mililitrosAgua / gramosCafe
+            "1:${String.format("%.0f", proporcion)}"
         } else null
     }
 }

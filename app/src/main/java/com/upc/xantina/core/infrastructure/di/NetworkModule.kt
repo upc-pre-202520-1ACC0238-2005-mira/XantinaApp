@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.upc.xantina.BuildConfig
 import com.upc.xantina.features.auth.infrastructure.api.AuthApiService
+import com.upc.xantina.features.extraccion.infrastructure.api.ExtraccionApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -62,5 +63,11 @@ object NetworkModule {
     fun provideAuthApiService(
         retrofit: Retrofit
     ): AuthApiService = retrofit.create(AuthApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideExtraccionApiService(
+        retrofit: Retrofit
+    ): ExtraccionApiService = retrofit.create(ExtraccionApiService::class.java)
 }
 

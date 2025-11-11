@@ -1,21 +1,39 @@
 package com.upc.xantina.features.extraccion.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.upc.xantina.features.extraccion.domain.model.Extraccion
+import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
+import com.upc.xantina.features.extraccion.presentation.viewmodel.ExtraccionViewModel
 import com.upc.xantina.shared.ui.components.MethodCard
 import com.upc.xantina.shared.ui.components.RecentCard
 import com.upc.xantina.shared.ui.theme.XantinaPrimary
@@ -24,37 +42,63 @@ import com.upc.xantina.shared.ui.theme.XantinaTextSecondary
 
 @Composable
 fun ExtraccionScreen(
+    userId: String?,
     onNavigateToCreate: () -> Unit,
     onNavigateToAll: () -> Unit,
     onMethodClick: (String) -> Unit,
-    onRecentClick: (String) -> Unit
+    onRecentClick: (String) -> Unit,
+    viewModel: ExtraccionViewModel = hiltViewModel()
 ) {
-    val metodos = getMockMetodos()
-    val extraccionesRecientes = getMockExtraccionesRecientes()
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(userId) {
+        viewModel.cargarDatos(userId)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         HeaderSection()
 
         Box(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 16.dp, bottom = 100.dp)
-            ) {
-                MetodosSection(metodos = metodos, onMethodClick = onMethodClick)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                RecientesSection(
-                    extraccionesRecientes = extraccionesRecientes,
-                    onRecentClick = onRecentClick,
-                    onNavigateToAll = onNavigateToAll
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(42.dp),
+                    color = XantinaPrimary
                 )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 16.dp, bottom = 100.dp)
+                ) {
+                    MetodosSection(
+                        metodos = uiState.metodos,
+                        onMethodClick = onMethodClick
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    RecientesSection(
+                        extraccionesRecientes = uiState.extraccionesRecientes,
+                        onRecentClick = onRecentClick,
+                        onNavigateToAll = onNavigateToAll
+                    )
+
+                    uiState.errorMessage?.let { mensaje ->
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = mensaje,
+                            color = Color.Red,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
 
             FloatingActionButton(
@@ -67,7 +111,7 @@ fun ExtraccionScreen(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Crear nueva extracción",
-                    tint = androidx.compose.ui.graphics.Color.White
+                    tint = Color.White
                 )
             }
         }
@@ -84,14 +128,14 @@ private fun HeaderSection() {
     ) {
         Text(
             text = "Extrae",
-            color = androidx.compose.ui.graphics.Color.White,
+            color = Color.White,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Crea tu próxima taza perfecta",
-            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f),
+            color = Color.White.copy(alpha = 0.9f),
             fontSize = 14.sp
         )
     }
@@ -99,7 +143,7 @@ private fun HeaderSection() {
 
 @Composable
 private fun MetodosSection(
-    metodos: List<MetodoExtraccionMock>,
+    metodos: List<MetodoExtraccion>,
     onMethodClick: (String) -> Unit
 ) {
     Column {
@@ -111,22 +155,30 @@ private fun MetodosSection(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        metodos.forEach { metodo ->
-            MethodCard(
-                nombre = metodo.nombre,
-                descripcion = metodo.descripcion,
-                tiempoPreparacion = metodo.tiempoPreparacion,
-                icono = metodo.icono,
-                onClick = { onMethodClick(metodo.nombre) }
+        if (metodos.isEmpty()) {
+            Text(
+                text = "Aún no tienes métodos disponibles.",
+                color = XantinaTextSecondary,
+                fontSize = 14.sp
             )
-            Spacer(modifier = Modifier.height(12.dp))
+        } else {
+            metodos.forEach { metodo ->
+                MethodCard(
+                    nombre = metodo.nombre,
+                    descripcion = metodo.descripcion,
+                    tiempoPreparacion = metodo.tiempoPreparacion,
+                    icono = metodo.icono,
+                    onClick = { onMethodClick(metodo.id) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }
 
 @Composable
 private fun RecientesSection(
-    extraccionesRecientes: List<ExtraccionRecienteMock>,
+    extraccionesRecientes: List<Extraccion>,
     onRecentClick: (String) -> Unit,
     onNavigateToAll: () -> Unit
 ) {
@@ -154,50 +206,25 @@ private fun RecientesSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        extraccionesRecientes.forEach { extraccion ->
-            RecentCard(
-                nombreCafe = extraccion.nombreCafe,
-                metodoExtraccion = extraccion.metodoExtraccion,
-                fechaHora = extraccion.fechaHora,
-                calificacion = extraccion.calificacion,
-                onClick = { onRecentClick(extraccion.id) }
+        if (extraccionesRecientes.isEmpty()) {
+            Text(
+                text = "Aún no registras extracciones.",
+                color = XantinaTextSecondary,
+                fontSize = 14.sp
             )
-            Spacer(modifier = Modifier.height(12.dp))
+        } else {
+            extraccionesRecientes.forEach { extraccion ->
+                RecentCard(
+                    nombreCafe = extraccion.nombreCafe,
+                    metodoExtraccion = extraccion.metodoExtraccion,
+                    fechaHora = extraccion.getFechaHoraCompleta(),
+                    calificacion = extraccion.calificacion,
+                    onClick = {
+                        extraccion.id?.let(onRecentClick)
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }
-
-// ---------------- Mock Data ----------------
-
-data class MetodoExtraccionMock(
-    val nombre: String,
-    val descripcion: String,
-    val tiempoPreparacion: String,
-    val icono: String
-)
-
-data class ExtraccionRecienteMock(
-    val id: String,
-    val nombreCafe: String,
-    val metodoExtraccion: String,
-    val fechaHora: String,
-    val calificacion: Int
-)
-
-private fun getMockMetodos(): List<MetodoExtraccionMock> = listOf(
-    MetodoExtraccionMock("Prensa Francesa", "Cuerpo completo y sabores intensos", "4 min", "prensa"),
-    MetodoExtraccionMock("V60", "Notas brillantes y claridad", "2-3 min", "v60"),
-    MetodoExtraccionMock("Aeropress", "Extracción rápida y consistente", "1-2 min", "aeropress"),
-    MetodoExtraccionMock("Chemex", "Café limpio y elegante", "4-5 min", "chemex"),
-    MetodoExtraccionMock("Espresso", "Intenso y concentrado", "30 seg", "espresso")
-)
-
-private fun getMockExtraccionesRecientes(): List<ExtraccionRecienteMock> = listOf(
-    ExtraccionRecienteMock("1", "Colombia Geisha", "V60", "Hoy, 8:30 AM", 5),
-    ExtraccionRecienteMock("2", "Brasil Natural", "Prensa Francesa", "Ayer, 10:15 AM", 4),
-    ExtraccionRecienteMock("3", "Etiopía Yirgacheffe", "Chemex", "Ayer, 2:30 PM", 5),
-    ExtraccionRecienteMock("4", "Guatemala Huehuetenango", "Aeropress", "Hace 2 días, 9:45 AM", 4),
-    ExtraccionRecienteMock("5", "Kenya AA", "V60", "Hace 3 días, 11:20 AM", 5),
-    ExtraccionRecienteMock("6", "Costa Rica Tarrazú", "Espresso", "Hace 3 días, 4:15 PM", 3),
-    ExtraccionRecienteMock("7", "Perú Organic", "Prensa Francesa", "Hace 4 días, 7:30 AM", 4)
-)
