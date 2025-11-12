@@ -26,10 +26,16 @@ import com.upc.xantina.shared.ui.components.XantinaBottomNavigation
 import com.upc.xantina.ui.theme.XantinaTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.upc.xantina.features.auth.presentation.viewmodel.AuthViewModel
+import com.upc.xantina.core.domain.repository.AuthRepository
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -88,7 +94,8 @@ class MainActivity : ComponentActivity() {
                         // PERFIL
                         if (showProfile) {
                             ProfileScreen(
-                                onBack = { showProfile = false }
+                                onBack = { showProfile = false },
+                                authRepository = authRepository
                             )
                             return@Box
                         }

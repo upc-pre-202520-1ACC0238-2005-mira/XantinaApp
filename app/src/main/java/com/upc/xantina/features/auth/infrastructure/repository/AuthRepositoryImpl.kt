@@ -49,6 +49,8 @@ class AuthRepositoryImpl @Inject constructor(
     }.mapError()
 
     override suspend fun isUserAuthenticated(): Boolean = cachedToken != null
+    
+    override suspend fun getAuthToken(): String? = cachedToken
 
     private fun <T> Result<T>.mapError(): Result<T> = this.mapError { throwable ->
         when (throwable) {

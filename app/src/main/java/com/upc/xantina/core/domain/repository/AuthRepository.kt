@@ -48,4 +48,10 @@ interface AuthRepository {
      * @return Boolean true si hay usuario autenticado
      */
     suspend fun isUserAuthenticated(): Boolean
+    
+    /**
+     * Obtiene el token de autenticación actual
+     * @return String? el token JWT o null si no está autenticado
+     */
+    suspend fun getAuthToken(): String?
 }
