@@ -63,6 +63,14 @@ fun XantinaBottomNavigation(
             isSelected = selectedTab == BottomNavTab.CONECTA,
             onClick = { onTabSelected(BottomNavTab.CONECTA) }
         )
+        
+        // Tab Perfil
+        BottomNavItem(
+            icon = Icons.Default.Person,
+            label = "Perfil",
+            isSelected = selectedTab == BottomNavTab.PROFILE,
+            onClick = { onTabSelected(BottomNavTab.PROFILE) }
+        )
     }
 }
 

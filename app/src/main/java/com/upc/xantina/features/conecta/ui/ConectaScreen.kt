@@ -21,7 +21,6 @@ import com.upc.xantina.features.social.ui.SocialFeedScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConectaScreen(
-    onProfileClick: () -> Unit,
     authRepository: AuthRepository
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -32,24 +31,11 @@ fun ConectaScreen(
                 .background(Color(0xFF4B2E2E))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.Center
         ) {
-            Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Conecta", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text("Comunidad cafetera", color = Color.White, fontSize = 14.sp)
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { onProfileClick() }
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = "Perfil",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text("Mi Perfil", color = Color.White, fontSize = 12.sp)
             }
         }
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.Divider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -139,11 +140,11 @@ fun PostCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -157,15 +158,16 @@ fun PostCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(XantinaPrimary),
+                        .background(Color(0xFF4B2E2E)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = post.userName.firstOrNull()?.uppercase() ?: "U",
                         color = Color.White,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
                     )
                 }
                 
@@ -174,13 +176,14 @@ fun PostCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = post.userName,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 17.sp,
+                        color = Color(0xFF2C1810)
                     )
                     Text(
                         text = formatDate(post.createdAt),
-                        fontSize = 12.sp,
-                        color = XantinaTextSecondary
+                        fontSize = 13.sp,
+                        color = Color.Gray
                     )
                 }
             }
@@ -190,8 +193,9 @@ fun PostCard(
             // Contenido
             Text(
                 text = post.content,
-                fontSize = 14.sp,
-                lineHeight = 20.sp
+                fontSize = 15.sp,
+                lineHeight = 22.sp,
+                color = Color(0xFF3C3C3C)
             )
             
             // Imagen (si existe)
@@ -212,10 +216,15 @@ fun PostCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            Divider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = Color.LightGray.copy(alpha = 0.5f)
+            )
+            
             // Botones: Like y Comentar
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Botón Like

@@ -9,20 +9,17 @@ data class CommentDto(
     @SerializedName("postId")
     val postId: String,
     
-    @SerializedName("authorId")
-    val authorId: String,
+    @SerializedName("userId")
+    val userId: String,
     
-    @SerializedName("authorName")
-    val authorName: String,
-    
-    @SerializedName("authorEmail")
-    val authorEmail: String,
+    @SerializedName("userName")
+    val userName: String,
     
     @SerializedName("content")
     val content: String,
     
-    @SerializedName("parentId")
-    val parentId: String? = null,
+    @SerializedName("parentCommentId")
+    val parentCommentId: String? = null,
     
     @SerializedName("repliesCount")
     val repliesCount: Int = 0,
@@ -38,7 +35,7 @@ data class CreateCommentRequestDto(
     @SerializedName("content")
     val content: String,
     
-    @SerializedName("parentId")
-    val parentId: String? = null
+    @SerializedName("parentCommentId")
+    val parentCommentId: String? = null
 )
 

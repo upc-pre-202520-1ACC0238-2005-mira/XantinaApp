@@ -153,6 +153,22 @@ class SocialViewModel @Inject constructor(
         }
     }
 
+    fun createPost(token: String, content: String, imageUrl: String?, extractionId: String?) {
+        viewModelScope.launch {
+            socialRepository.createPost(token, content, imageUrl, extractionId)
+                .onSuccess { newPost ->
+                    // Agregar el nuevo post al principio del feed
+                    if (_feedState.value is FeedUiState.Success) {
+                        val currentPosts = (_feedState.value as FeedUiState.Success).posts
+                        _feedState.update { FeedUiState.Success(listOf(newPost) + currentPosts) }
+                    }
+                }
+                .onFailure { error ->
+                    // Manejar error silenciosamente o mostrar un mensaje
+                }
+        }
+    }
+
     fun resetCommentsState() {
         _commentsState.update { CommentsUiState.Idle }
         _repliesState.update { RepliesUiState.Idle }

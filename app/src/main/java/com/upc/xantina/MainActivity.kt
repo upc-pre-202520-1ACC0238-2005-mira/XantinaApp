@@ -91,19 +91,6 @@ class MainActivity : ComponentActivity() {
                             .padding(padding)
                     ) {
 
-                        // PERFIL
-                        if (showProfile) {
-                            ProfileScreen(
-                                onBack = { showProfile = false },
-                                onLogout = {
-                                    authViewModel.logout()
-                                    showProfile = false
-                                },
-                                authRepository = authRepository
-                            )
-                            return@Box
-                        }
-
                         // CREACIÓN DE MÉTODO
                         if (mostrarCrearMetodo) {
                             CrearMetodoScreen(
@@ -159,6 +146,8 @@ class MainActivity : ComponentActivity() {
                         // NOTAS DE CATA
                         if (mostrarNotas) {
                             NotasDeCataScreen(
+                                metodoNombre = selectedMetodo?.nombre ?: "Método desconocido",
+                                authRepository = authRepository,
                                 onGuardar = {
                                     mostrarNotas = false
                                     selectedMetodo = null
@@ -167,7 +156,7 @@ class MainActivity : ComponentActivity() {
                                 onPublicar = {
                                     mostrarNotas = false
                                     selectedMetodo = null
-                                    selectedTab = BottomNavTab.EXTRACCION
+                                    selectedTab = BottomNavTab.CONECTA // Navegar a Conecta después de publicar
                                 }
                             )
                             return@Box
@@ -190,7 +179,15 @@ class MainActivity : ComponentActivity() {
                             )
 
                             BottomNavTab.CONECTA -> ConectaScreen(
-                                onProfileClick = { showProfile = true },
+                                authRepository = authRepository
+                            )
+
+                            BottomNavTab.PROFILE -> ProfileScreen(
+                                onBack = { selectedTab = BottomNavTab.EXTRACCION },
+                                onLogout = {
+                                    authViewModel.logout()
+                                    selectedTab = BottomNavTab.EXTRACCION
+                                },
                                 authRepository = authRepository
                             )
 

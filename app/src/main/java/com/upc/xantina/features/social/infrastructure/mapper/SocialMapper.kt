@@ -10,9 +10,9 @@ object SocialMapper {
     fun PostDto.toDomain(isLikedByCurrentUser: Boolean = false): Post {
         return Post(
             id = this.id,
-            userId = this.authorId,
-            userName = this.authorName,
-            userEmail = this.authorEmail,
+            userId = this.userId,
+            userName = this.userName,
+            userEmail = this.userEmail,
             content = this.content,
             imageUrl = this.imageUrl,
             extractionId = this.extractionId,
@@ -28,10 +28,10 @@ object SocialMapper {
         return Comment(
             id = this.id,
             postId = this.postId,
-            userId = this.authorId,
-            userName = this.authorName,
+            userId = this.userId,
+            userName = this.userName,
             content = this.content,
-            parentCommentId = this.parentId,
+            parentCommentId = this.parentCommentId,
             repliesCount = this.repliesCount,
             createdAt = this.createdAt,
             updatedAt = this.updatedAt

@@ -20,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -122,13 +123,19 @@ fun ExtraccionScreen(
                 onClick = { onNavigateToCreate(userId) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-                containerColor = XantinaPrimary
+                    .padding(24.dp),
+                containerColor = Color(0xFF4B2E2E),
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 12.dp,
+                    hoveredElevation = 10.dp
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Crear nuevo método",
-                    tint = Color.White
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }

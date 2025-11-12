@@ -8,13 +8,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.upc.xantina.core.domain.repository.AuthRepository
+import com.upc.xantina.features.social.presentation.viewmodel.SocialViewModel
 import com.upc.xantina.shared.ui.theme.XantinaPrimary
+import kotlinx.coroutines.launch
 
 @Composable
 fun NotasDeCataScreen(
+    metodoNombre: String,
+    authRepository: AuthRepository,
     onGuardar: () -> Unit,
-    onPublicar: () -> Unit
+    onPublicar: () -> Unit,
+    socialViewModel: SocialViewModel = hiltViewModel()
 ) {
+    val scope = rememberCoroutineScope()
     var valoracion by remember { mutableStateOf(50f) }
     var acidez by remember { mutableStateOf(50f) }
     var dulzor by remember { mutableStateOf(50f) }
@@ -58,12 +66,41 @@ fun NotasDeCataScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Button(
-                onClick = onGuardar,
+                onClick = {
+                    scope.launch {
+                        val token = authRepository.getAuthToken()
+                        if (token != null) {
+                            // Guardar en historial (próxima implementación)
+                            // TODO: Llamar al endpoint de historial
+                            onGuardar()
+                        }
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary)
             ) { Text("Guardar") }
 
             Button(
-                onClick = onPublicar,
+                onClick = {
+                    scope.launch {
+                        val token = authRepository.getAuthToken()
+                        if (token != null) {
+                            val contenido = buildString {
+                                append("Extracción con $metodoNombre\n\n")
+                                append("Valoración: ${valoracion.toInt()}/100\n\n")
+                                append("Perfil Sensorial:\n")
+                                append("• Acidez: ${acidez.toInt()}/100\n")
+                                append("• Dulzor: ${dulzor.toInt()}/100\n")
+                                append("• Amargor: ${amargor.toInt()}/100")
+                                if (notas.isNotBlank()) {
+                                    append("\n\nNotas: $notas")
+                                }
+                            }
+                            
+                            socialViewModel.createPost(token, contenido, null, null)
+                            onPublicar()
+                        }
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary)
             ) { Text("Publicar") }
         }

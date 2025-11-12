@@ -6,14 +6,14 @@ data class PostDto(
     @SerializedName("id")
     val id: String,
     
-    @SerializedName("authorId")
-    val authorId: String,
+    @SerializedName("userId")
+    val userId: String,
     
-    @SerializedName("authorName")
-    val authorName: String,
+    @SerializedName("userName")
+    val userName: String,
     
-    @SerializedName("authorEmail")
-    val authorEmail: String,
+    @SerializedName("userEmail")
+    val userEmail: String,
     
     @SerializedName("content")
     val content: String,
