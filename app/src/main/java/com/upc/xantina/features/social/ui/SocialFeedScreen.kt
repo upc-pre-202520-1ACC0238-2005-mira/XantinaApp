@@ -41,8 +41,6 @@ fun SocialFeedScreen(
     val scope = rememberCoroutineScope()
     val feedState by viewModel.feedState.collectAsState()
     
-    var selectedPost by remember { mutableStateOf<Post?>(null) }
-    
     LaunchedEffect(Unit) {
         scope.launch {
             val token = authRepository.getAuthToken()
@@ -105,9 +103,7 @@ fun SocialFeedScreen(
                                         }
                                     }
                                 },
-                                onComment = {
-                                    selectedPost = post
-                                },
+                                onComment = {}, // No se usa más el modal
                                 authRepository = authRepository
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -117,16 +113,6 @@ fun SocialFeedScreen(
             }
         }
     }
-    
-    // Diálogo de comentarios
-    selectedPost?.let { post ->
-        CommentsDialog(
-            post = post,
-            authRepository = authRepository,
-            viewModel = viewModel,
-            onDismiss = { selectedPost = null }
-        )
-    }
 }
 
 @Composable
@@ -134,8 +120,24 @@ fun PostCard(
     post: Post,
     onLike: () -> Unit,
     onComment: () -> Unit,
-    authRepository: AuthRepository
+    authRepository: AuthRepository,
+    viewModel: SocialViewModel = hiltViewModel()
 ) {
+    val scope = rememberCoroutineScope()
+    val commentsState by viewModel.commentsState.collectAsState()
+    var showAllComments by remember { mutableStateOf(false) }
+    var showCommentInput by remember { mutableStateOf(false) }
+    var commentText by remember { mutableStateOf("") }
+    var replyingTo by remember { mutableStateOf<Comment?>(null) }
+    
+    LaunchedEffect(post.id) {
+        scope.launch {
+            val token = authRepository.getAuthToken()
+            if (token != null && post.commentsCount > 0) {
+                viewModel.loadComments(token, post.id)
+            }
+        }
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -255,7 +257,7 @@ fun PostCard(
                 // Botón Comentar
                 Row(
                     modifier = Modifier
-                        .clickable(onClick = onComment)
+                        .clickable { showCommentInput = !showCommentInput }
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -271,6 +273,125 @@ fun PostCard(
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
+                }
+            }
+            
+            // Sección de comentarios
+            if (commentsState is CommentsUiState.Success) {
+                val comments = (commentsState as CommentsUiState.Success).comments
+                val commentsToShow = if (showAllComments) comments else comments.take(3)
+                
+                if (comments.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Divider(color = Color.LightGray.copy(alpha = 0.3f))
+                    
+                    commentsToShow.forEach { comment ->
+                        CommentItemInline(
+                            comment = comment,
+                            onReply = { 
+                                replyingTo = comment
+                                showCommentInput = true
+                            },
+                            authRepository = authRepository,
+                            viewModel = viewModel
+                        )
+                    }
+                    
+                    if (comments.size > 3 && !showAllComments) {
+                        TextButton(
+                            onClick = { showAllComments = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "Ver ${comments.size - 3} comentarios más",
+                                color = Color(0xFF4B2E2E),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Input para comentar
+            if (showCommentInput) {
+                Divider(color = Color.LightGray.copy(alpha = 0.3f))
+                
+                replyingTo?.let { replying ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Respondiendo a ${replying.userName}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF4B2E2E),
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { replyingTo = null }) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Cancelar",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = { commentText = it },
+                        placeholder = { 
+                            Text(
+                                if (replyingTo != null) "Escribe una respuesta..." 
+                                else "Escribe un comentario...",
+                                fontSize = 14.sp
+                            ) 
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        ),
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    IconButton(
+                        onClick = {
+                            if (commentText.isNotBlank()) {
+                                scope.launch {
+                                    val token = authRepository.getAuthToken()
+                                    if (token != null) {
+                                        viewModel.createComment(
+                                            token,
+                                            post.id,
+                                            commentText,
+                                            replyingTo?.id
+                                        )
+                                        commentText = ""
+                                        replyingTo = null
+                                    }
+                                }
+                            }
+                        },
+                        enabled = commentText.isNotBlank()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Send,
+                            contentDescription = "Enviar",
+                            tint = if (commentText.isNotBlank()) Color(0xFF4B2E2E) else Color.Gray
+                        )
+                    }
                 }
             }
         }
@@ -556,6 +677,164 @@ fun ReplyItem(reply: com.upc.xantina.features.social.domain.model.Comment) {
                 text = formatDate(reply.createdAt),
                 fontSize = 10.sp,
                 color = XantinaTextSecondary
+            )
+        }
+    }
+}
+
+@Composable
+fun CommentItemInline(
+    comment: Comment,
+    onReply: () -> Unit,
+    authRepository: AuthRepository,
+    viewModel: SocialViewModel
+) {
+    val scope = rememberCoroutineScope()
+    val repliesState by viewModel.repliesState.collectAsState()
+    var showReplies by remember { mutableStateOf(false) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF4B2E2E)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = comment.userName.firstOrNull()?.uppercase() ?: "U",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = comment.userName,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = Color(0xFF2C1810)
+                )
+                Text(
+                    text = comment.content,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    color = Color(0xFF3C3C3C)
+                )
+                
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = formatDate(comment.createdAt),
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Text(
+                        text = "Responder",
+                        fontSize = 12.sp,
+                        color = Color(0xFF4B2E2E),
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable(onClick = onReply)
+                    )
+                    
+                    if (comment.repliesCount > 0) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (showReplies) "Ocultar respuestas" else "${comment.repliesCount} respuestas",
+                            fontSize = 12.sp,
+                            color = Color(0xFF4B2E2E),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable {
+                                showReplies = !showReplies
+                                if (showReplies) {
+                                    scope.launch {
+                                        val token = authRepository.getAuthToken()
+                                        if (token != null) {
+                                            viewModel.loadReplies(token, comment.id)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                
+                // Mostrar respuestas
+                if (showReplies && repliesState is RepliesUiState.Success) {
+                    val replies = (repliesState as RepliesUiState.Success).replies
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 16.dp, top = 8.dp)
+                            .fillMaxWidth()
+                    ) {
+                        replies.forEach { reply ->
+                            ReplyItemInline(reply)
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReplyItemInline(reply: Comment) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF4B2E2E).copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = reply.userName.firstOrNull()?.uppercase() ?: "U",
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(6.dp))
+        
+        Column {
+            Text(
+                text = reply.userName,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                color = Color(0xFF2C1810)
+            )
+            Text(
+                text = reply.content,
+                fontSize = 13.sp,
+                lineHeight = 17.sp,
+                color = Color(0xFF3C3C3C)
+            )
+            Text(
+                text = formatDate(reply.createdAt),
+                fontSize = 10.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
     }
