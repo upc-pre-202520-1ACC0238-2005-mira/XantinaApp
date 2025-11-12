@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
+    onLogout: () -> Unit,
     authRepository: AuthRepository,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -198,6 +200,15 @@ fun ProfileScreen(
                         title = "Cambiar Contraseña",
                         subtitle = "Actualiza tu contraseña",
                         onClick = { showPasswordDialog = true }
+                    )
+                    
+                    Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    
+                    ProfileOption(
+                        icon = Icons.Default.ExitToApp,
+                        title = "Cerrar Sesión",
+                        subtitle = "Salir de tu cuenta",
+                        onClick = onLogout
                     )
                 }
             }

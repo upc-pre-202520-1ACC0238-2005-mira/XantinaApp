@@ -95,6 +95,10 @@ class MainActivity : ComponentActivity() {
                         if (showProfile) {
                             ProfileScreen(
                                 onBack = { showProfile = false },
+                                onLogout = {
+                                    authViewModel.logout()
+                                    showProfile = false
+                                },
                                 authRepository = authRepository
                             )
                             return@Box
@@ -186,7 +190,8 @@ class MainActivity : ComponentActivity() {
                             )
 
                             BottomNavTab.CONECTA -> ConectaScreen(
-                                onProfileClick = { showProfile = true }
+                                onProfileClick = { showProfile = true },
+                                authRepository = authRepository
                             )
 
                             else -> {}
