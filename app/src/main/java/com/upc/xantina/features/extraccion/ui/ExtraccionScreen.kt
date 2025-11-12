@@ -16,23 +16,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,7 +39,6 @@ import com.upc.xantina.features.extraccion.domain.model.Extraccion
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.features.extraccion.presentation.state.MetodoFiltro
 import com.upc.xantina.features.extraccion.presentation.viewmodel.ExtraccionViewModel
-import com.upc.xantina.features.extraccion.presentation.viewmodel.MetodoCreacionDatos
 import com.upc.xantina.shared.ui.components.MethodCard
 import com.upc.xantina.shared.ui.components.RecentCard
 import com.upc.xantina.shared.ui.theme.XantinaPrimary
@@ -55,14 +48,13 @@ import com.upc.xantina.shared.ui.theme.XantinaTextSecondary
 @Composable
 fun ExtraccionScreen(
     userId: String?,
-    onNavigateToCreate: () -> Unit, // Reservado para futuras integraciones
+    onNavigateToCreate: (String?) -> Unit,
     onNavigateToAll: () -> Unit,
-    onMethodClick: (String) -> Unit,
+    onMethodClick: (MetodoExtraccion) -> Unit,
     onRecentClick: (String) -> Unit,
     viewModel: ExtraccionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var mostrarDialogoCreacion by remember { mutableStateOf(false) }
     val contexto = LocalContext.current
 
     LaunchedEffect(userId) {
@@ -72,7 +64,6 @@ fun ExtraccionScreen(
     LaunchedEffect(uiState.successMessage) {
         val mensaje = uiState.successMessage ?: return@LaunchedEffect
         Toast.makeText(contexto, mensaje, Toast.LENGTH_SHORT).show()
-        mostrarDialogoCreacion = false
         viewModel.consumirMensajes()
     }
 
@@ -128,7 +119,7 @@ fun ExtraccionScreen(
             }
 
             FloatingActionButton(
-                onClick = { mostrarDialogoCreacion = true },
+                onClick = { onNavigateToCreate(userId) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
@@ -141,20 +132,6 @@ fun ExtraccionScreen(
                 )
             }
         }
-    }
-
-    if (mostrarDialogoCreacion) {
-        CrearMetodoDialog(
-            isSaving = uiState.isSaving,
-            onDismiss = {
-                if (!uiState.isSaving) {
-                    mostrarDialogoCreacion = false
-                }
-            },
-            onGuardar = { datos ->
-                viewModel.crearMetodo(userId, datos)
-            }
-        )
     }
 }
 
@@ -213,7 +190,7 @@ private fun MetodoFiltroRow(
 @Composable
 private fun MetodosSection(
     metodos: List<MetodoExtraccion>,
-    onMethodClick: (String) -> Unit
+    onMethodClick: (MetodoExtraccion) -> Unit
 ) {
     Column {
         Text(
@@ -237,7 +214,7 @@ private fun MetodosSection(
                     descripcion = metodo.descripcion,
                     tiempoPreparacion = metodo.tiempoPreparacion,
                     icono = metodo.icono,
-                    onClick = { onMethodClick(metodo.id) }
+                    onClick = { onMethodClick(metodo) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -296,114 +273,4 @@ private fun RecientesSection(
             }
         }
     }
-}
-
-@Composable
-private fun CrearMetodoDialog(
-    isSaving: Boolean,
-    onDismiss: () -> Unit,
-    onGuardar: (MetodoCreacionDatos) -> Unit
-) {
-    var nombre by rememberSaveable { mutableStateOf("") }
-    var metodo by rememberSaveable { mutableStateOf("") }
-    var descripcion by rememberSaveable { mutableStateOf("") }
-    var ratio by rememberSaveable { mutableStateOf("1:15") }
-    var gramosCafe by rememberSaveable { mutableStateOf("") }
-    var mililitrosAgua by rememberSaveable { mutableStateOf("") }
-    var temperaturaAgua by rememberSaveable { mutableStateOf("") }
-    var tiempoExtraccion by rememberSaveable { mutableStateOf("") }
-    var calificacion by rememberSaveable { mutableStateOf("5") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val datos = MetodoCreacionDatos(
-                        nombre = nombre.trim(),
-                        metodo = metodo.trim().ifBlank { nombre.trim() },
-                        ratio = ratio.trim().ifBlank { "1:15" },
-                        descripcion = descripcion.trim().ifBlank { null },
-                        gramosCafe = gramosCafe.toDoubleOrNull(),
-                        mililitrosAgua = mililitrosAgua.toDoubleOrNull(),
-                        temperaturaAgua = temperaturaAgua.toIntOrNull(),
-                        tiempoExtraccion = tiempoExtraccion.toIntOrNull(),
-                        calificacion = calificacion.toIntOrNull()
-                    )
-                    onGuardar(datos)
-                },
-                enabled = !isSaving && nombre.isNotBlank()
-            ) {
-                Text(text = if (isSaving) "Guardando..." else "Guardar")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                enabled = !isSaving
-            ) {
-                Text("Cancelar")
-            }
-        },
-        title = { Text(text = "Nuevo método de extracción") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre del método") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = metodo,
-                    onValueChange = { metodo = it },
-                    label = { Text("Etiqueta o familia") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción") }
-                )
-                OutlinedTextField(
-                    value = ratio,
-                    onValueChange = { ratio = it },
-                    label = { Text("Ratio (ej. 1:15)") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = gramosCafe,
-                    onValueChange = { gramosCafe = it },
-                    label = { Text("Gramos de café") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = mililitrosAgua,
-                    onValueChange = { mililitrosAgua = it },
-                    label = { Text("Mililitros de agua") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = temperaturaAgua,
-                    onValueChange = { temperaturaAgua = it },
-                    label = { Text("Temperatura (°C)") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = tiempoExtraccion,
-                    onValueChange = { tiempoExtraccion = it },
-                    label = { Text("Tiempo (seg)") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = calificacion,
-                    onValueChange = { calificacion = it },
-                    label = { Text("Calificación (1-5)") },
-                    singleLine = true
-                )
-            }
-        }
-    )
 }

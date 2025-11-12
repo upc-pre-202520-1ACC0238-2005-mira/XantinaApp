@@ -12,10 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.upc.xantina.features.auth.ui.AuthScreen
 import com.upc.xantina.features.conecta.ui.ConectaScreen
+import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
+import com.upc.xantina.features.extraccion.ui.CrearMetodoScreen
 import com.upc.xantina.features.extraccion.ui.ExtraccionScreen
+import com.upc.xantina.features.extraccion.ui.NotasDeCataScreen
 import com.upc.xantina.features.extraccion.ui.ParametrosExtraccionScreen
 import com.upc.xantina.features.extraccion.ui.PasoExtraccionScreen
-import com.upc.xantina.features.extraccion.ui.NotasDeCataScreen
+import com.upc.xantina.features.extraccion.ui.PasoExtraccionUi
+import com.upc.xantina.features.extraccion.ui.defaultPasosExtraccion
 import com.upc.xantina.features.profile.ui.ProfileScreen
 import com.upc.xantina.shared.ui.components.BottomNavTab
 import com.upc.xantina.shared.ui.components.XantinaBottomNavigation
@@ -39,11 +43,15 @@ class MainActivity : ComponentActivity() {
 
                 var showProfile by remember { mutableStateOf(false) }
 
-                var selectedMetodo by remember { mutableStateOf<String?>(null) }
+                var selectedMetodo by remember { mutableStateOf<MetodoExtraccion?>(null) }
                 var extraccionIniciada by remember { mutableStateOf(false) }
                 var pasoActual by remember { mutableStateOf(1) }
 
                 var mostrarNotas by remember { mutableStateOf(false) }
+                var mostrarCrearMetodo by remember { mutableStateOf(false) }
+                var usuarioCreacionId by remember { mutableStateOf<String?>(null) }
+
+                val pasosExtraccion = remember { defaultPasosExtraccion() }
 
                 // AUTENTICACION
                 if (!isLoggedIn) {
@@ -56,7 +64,13 @@ class MainActivity : ComponentActivity() {
                 // APP
                 Scaffold(
                     bottomBar = {
-                        if (!showProfile && selectedMetodo == null && !extraccionIniciada && !mostrarNotas) {
+                        if (
+                            !showProfile &&
+                            selectedMetodo == null &&
+                            !extraccionIniciada &&
+                            !mostrarNotas &&
+                            !mostrarCrearMetodo
+                        ) {
                             XantinaBottomNavigation(
                                 selectedTab = selectedTab,
                                 onTabSelected = { selectedTab = it }
@@ -79,6 +93,21 @@ class MainActivity : ComponentActivity() {
                             return@Box
                         }
 
+                        // CREACIÓN DE MÉTODO
+                        if (mostrarCrearMetodo) {
+                            CrearMetodoScreen(
+                                userId = usuarioCreacionId,
+                                onBack = {
+                                    mostrarCrearMetodo = false
+                                },
+                                onCreated = {
+                                    mostrarCrearMetodo = false
+                                    selectedTab = BottomNavTab.EXTRACCION
+                                }
+                            )
+                            return@Box
+                        }
+
                         // PARÁMETROS DE EXTRACCIÓN
                         if (selectedMetodo != null && !extraccionIniciada && !mostrarNotas) {
                             ParametrosExtraccionScreen(
@@ -95,26 +124,17 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // PASOS
-                        if (extraccionIniciada && pasoActual <= 4) {
+                        if (extraccionIniciada && pasoActual <= pasosExtraccion.size) {
 
-                            val pasos = listOf(
-                                Triple("Vertido de agua", "Vierte el agua en círculos.", 20),
-                                Triple("Reposo inicial", "Deja reposar para que se expanda.", 15),
-                                Triple("Remoción", "Mezcla suavemente.", 10),
-                                Triple("Reposo final", "Espera a que termine.", 20)
-                            )
-
-                            val paso = pasos[pasoActual - 1]
+                            val paso: PasoExtraccionUi = pasosExtraccion[pasoActual - 1]
 
                             PasoExtraccionScreen(
                                 pasoActual = pasoActual,
-                                totalPasos = 4,
-                                metodo = selectedMetodo ?: "",
-                                titulo = paso.first,
-                                instruccion = paso.second,
-                                duracionSegundos = paso.third,
+                                totalPasos = pasosExtraccion.size,
+                                metodoNombre = selectedMetodo?.nombre ?: "",
+                                paso = paso,
                                 onPasoCompleto = {
-                                    if (pasoActual < 4) {
+                                    if (pasoActual < pasosExtraccion.size) {
                                         pasoActual++
                                     } else {
                                         extraccionIniciada = false
@@ -147,7 +167,10 @@ class MainActivity : ComponentActivity() {
 
                             BottomNavTab.EXTRACCION -> ExtraccionScreen(
                                 userId = authUiState.user?.id,
-                                onNavigateToCreate = { },
+                                onNavigateToCreate = { usuarioId ->
+                                    usuarioCreacionId = usuarioId
+                                    mostrarCrearMetodo = true
+                                },
                                 onNavigateToAll = { },
                                 onMethodClick = { metodo ->
                                     selectedMetodo = metodo

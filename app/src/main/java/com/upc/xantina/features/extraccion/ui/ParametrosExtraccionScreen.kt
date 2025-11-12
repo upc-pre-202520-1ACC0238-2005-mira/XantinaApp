@@ -11,12 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.shared.ui.theme.XantinaPrimary
 import com.upc.xantina.shared.ui.theme.XantinaSecondary
 
 @Composable
 fun ParametrosExtraccionScreen(
-    metodo: String,
+    metodo: MetodoExtraccion,
     onStart: (String, Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
@@ -30,15 +31,22 @@ fun ParametrosExtraccionScreen(
     var cafeSeleccionado by remember { mutableStateOf<String?>(null) }
     var mostrarLista by remember { mutableStateOf(false) }
 
-    var cantidadCafe by remember { mutableStateOf(15) }
-    var cantidadAgua by remember { mutableStateOf(225) }
+    val ratioRecomendado = remember(metodo.ratio) {
+        metodo.ratio
+            ?.substringAfter(":")
+            ?.toDoubleOrNull()
+            ?.toInt()
+            ?.coerceAtLeast(1) ?: 15
+    }
 
-    val ratio = 15
+    var cantidadCafe by remember { mutableStateOf(15) }
+    var cantidadAgua by remember { mutableStateOf(15 * ratioRecomendado) }
+
     val tiempoEstimadoMinutos = 2.5
 
     // Recalcular agua basado en ratio
-    LaunchedEffect(cantidadCafe) {
-        cantidadAgua = cantidadCafe * ratio
+    LaunchedEffect(cantidadCafe, ratioRecomendado) {
+        cantidadAgua = cantidadCafe * ratioRecomendado
     }
 
     Column(
@@ -64,8 +72,15 @@ fun ParametrosExtraccionScreen(
         )
         Spacer(Modifier.height(8.dp))
 
-        Text("Método: $metodo", fontSize = 16.sp)
+        Text("Método: ${metodo.nombre}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(4.dp))
+        Text(metodo.descripcion, fontSize = 14.sp)
         Spacer(Modifier.height(24.dp))
+
+        metodo.ratio?.let {
+            Text("Ratio sugerido: $it", fontSize = 14.sp)
+            Spacer(Modifier.height(16.dp))
+        }
 
         // ---- Selección de café ----
         Text("Selecciona un café", fontSize = 16.sp, fontWeight = FontWeight.Medium)
@@ -139,7 +154,8 @@ fun ParametrosExtraccionScreen(
         )
 
         Spacer(Modifier.height(16.dp))
-        Text("Ratio recomendado: $cantidadCafe × $ratio = $cantidadAgua ml", fontSize = 14.sp)
+        val ratioTexto = metodo.ratio ?: "1:$ratioRecomendado"
+        Text("Ratio recomendado: $cantidadCafe g × $ratioTexto ≈ $cantidadAgua ml", fontSize = 14.sp)
         Spacer(Modifier.height(16.dp))
 
         Text("Tiempo estimado: $tiempoEstimadoMinutos min", color = XantinaSecondary)
