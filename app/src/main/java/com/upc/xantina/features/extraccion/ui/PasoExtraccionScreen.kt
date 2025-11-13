@@ -22,11 +22,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -43,10 +53,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -246,56 +258,104 @@ fun PasoExtraccionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundBrush)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Row(
+        // Barra superior con controles
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            OutlinedButton(
-                onClick = onSalirProceso,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Salir")
-            }
+                // Botón Salir
+                OutlinedButton(
+                    onClick = onSalirProceso,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Salir",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("Salir", fontSize = 14.sp)
+                }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = onPasoAnterior,
-                    enabled = puedeRetroceder
-                ) {
-                    Text("Anterior")
-                }
-                OutlinedButton(
-                    onClick = {
-                        tiempoRestante = duracion
-                        isPaused = false
-                        onReiniciarPaso()
+                // Controles de navegación
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(
+                        onClick = onPasoAnterior,
+                        enabled = puedeRetroceder
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Anterior",
+                            tint = if (puedeRetroceder) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
                     }
-                ) {
-                    Text("Reiniciar")
-                }
-                OutlinedButton(
-                    onClick = { isPaused = !isPaused }
-                ) {
-                    Text(if (isPaused) "Reanudar ▶" else "Pausar ⏸")
+                    IconButton(
+                        onClick = {
+                            tiempoRestante = duracion
+                            isPaused = false
+                            onReiniciarPaso()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reiniciar"
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = { isPaused = !isPaused },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Close,
+                            contentDescription = if (isPaused) "Reanudar" else "Pausar",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = if (isPaused) "Reanudar" else "Pausar",
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
         }
 
+        Spacer(Modifier.height(20.dp))
+
+        // Título y paso actual
         Text(
             text = metodoNombre,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
         )
-        Text("Paso $pasoActual de $totalPasos", fontSize = 16.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Paso $pasoActual de $totalPasos",
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
 
         PasoProgressIndicator(
             pasoActual = pasoActual,
@@ -308,8 +368,9 @@ fun PasoExtraccionScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+                containerColor = Color(0xFFF5F0E8) // Color crema cálido
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -376,8 +437,11 @@ fun PasoExtraccionScreen(
         Spacer(Modifier.height(20.dp))
 
         Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFE8DCC8) // Color beige cálido
+            ),
             shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
@@ -394,13 +458,15 @@ fun PasoExtraccionScreen(
                 Text(
                     text = "Tiempo restante",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = Color(0xFF5D4037), // Marrón oscuro
+                    fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = formatoTiempo,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = Color(0xFF6F4E37), // Color café
+                    fontSize = 36.sp
                 )
             }
         }
@@ -420,91 +486,135 @@ fun PasoExtraccionScreen(
             when (state) {
                 PasoActionState.ManualWaiting -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFF8E1) // Amarillo suave
+                        ),
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Text(
                             text = "Completa el paso y espera a que finalice el tiempo.",
                             modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF5D4037)
                         )
                     }
                 }
                 PasoActionState.ManualReady -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFC8E6C9) // Verde suave
+                        ),
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Text(
                             text = "¡Listo! Puedes avanzar cuando quieras.",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF2E7D32)
                         )
                     }
                 }
                 PasoActionState.AutoWaiting -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFE3F2FD) // Azul suave
+                        ),
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Text(
                             text = "Avanzaremos automáticamente cuando termine el tiempo.",
                             modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF1565C0)
                         )
                     }
                 }
                 PasoActionState.AutoAdvancing -> {
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = Color(0xFF81C784) // Verde brillante
                         ),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                     ) {
                         Text(
                             text = "✓ Pasando al siguiente paso...",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
                 PasoActionState.Paused -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFCDD2) // Rojo suave
+                        ),
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Text(
                             text = "Temporizador en pausa",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFC62828)
                         )
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
 
+        // Botón Continuar - Siempre visible con color café
         val puedeAvanzarManualmente = !paso.requiereAccionManual || tiempoRestante <= 0
+        val colorCafe = Color(0xFF6F4E37) // Color café/marrón
+        
         Button(
             onClick = {
                 tiempoRestante = 0
                 onPasoCompleto()
             },
-            enabled = puedeAvanzarManualmente,
-            colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary),
-            modifier = Modifier.fillMaxWidth()
+            enabled = true,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorCafe,
+                disabledContainerColor = colorCafe.copy(alpha = 0.6f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 6.dp,
+                pressedElevation = 8.dp
+            )
         ) {
-            Text("Siguiente")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Continuar",
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 0.5.sp
+                )
+            }
         }
+        
+        Spacer(Modifier.height(16.dp))
     }
 }

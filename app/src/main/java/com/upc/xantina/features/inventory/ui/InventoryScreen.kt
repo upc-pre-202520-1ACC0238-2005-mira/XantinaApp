@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
@@ -40,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,15 +79,16 @@ fun InventoryScreen(
             FloatingActionButton(
                 onClick = { showDialog = true },
                 containerColor = XantinaPrimary,
+                shape = RoundedCornerShape(16.dp),
                 elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 10.dp
+                    defaultElevation = 8.dp,
+                    pressedElevation = 12.dp
                 )
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Agregar bolsa",
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = Color.White
                 )
             }
         }
@@ -158,21 +161,24 @@ private fun HeaderSection(
     ) {
         Column {
             Text(
-                text = "Inventory",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
+                text = "Inventario",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Administra tus bolsas de café",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
         }
 
         IconButton(onClick = onRefresh, enabled = !isLoading) {
             Icon(
                 imageVector = Icons.Default.Refresh,
-                contentDescription = "Actualizar bolsas"
+                contentDescription = "Actualizar bolsas",
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -219,24 +225,25 @@ private fun BolsaList(bolsas: List<BolsaCafe>) {
 private fun BolsaCard(bolsa: BolsaCafe) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = CardDefaults.elevatedShape,
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = bolsa.nombre,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             bolsa.origen?.takeIf { it.isNotBlank() }?.let {
@@ -254,19 +261,47 @@ private fun BolsaCard(bolsa: BolsaCafe) {
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(top = 6.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    text = "Peso inicial: ${bolsa.pesoInicial} g",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "Restante: ${bolsa.pesoRestante} g",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = XantinaSecondary
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Peso inicial",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "${bolsa.pesoInicial} g",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Restante",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "${bolsa.pesoRestante} g",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = XantinaSecondary
+                        )
+                    }
+                }
             }
 
             bolsa.varietal?.takeIf { it.isNotBlank() }?.let {

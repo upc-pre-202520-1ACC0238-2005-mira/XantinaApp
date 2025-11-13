@@ -13,16 +13,26 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -84,62 +94,144 @@ fun ParametrosExtraccionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
     ) {
 
-        // Botón regresar
-        Text(
-            text = "← Regresar",
-            fontSize = 16.sp,
+        // Botón regresar mejorado
+        Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .clickable { onBack() }
-                .padding(bottom = 16.dp)
-        )
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Regresar",
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "Regresar",
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
 
         // Título
         Text(
-            "Parámetros de extracción",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
+            "Configuración de extracción",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(Modifier.height(8.dp))
+        Text(
+            "Ajusta los parámetros para tu preparación",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+        Spacer(Modifier.height(20.dp))
 
-        Text("Método: ${metodo.nombre}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(4.dp))
-        Text(metodo.descripcion, fontSize = 14.sp)
-        Spacer(Modifier.height(24.dp))
-
-        val ratioTexto = metodo.ratio ?: "1:$ratioRecomendado"
-        Row(
+        // Card con información del método
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Text("Ratio sugerido: $ratioTexto", fontSize = 14.sp)
-            Spacer(modifier = Modifier.weight(1f))
-            OutlinedButton(
-                onClick = { ratioBloqueado = !ratioBloqueado }
-            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = if (ratioBloqueado) "🔒 Bloqueado" else "🔓 Editable",
-                    fontSize = 12.sp
+                    "Método: ${metodo.nombre}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    metodo.descripcion,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 )
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
+
+        // Card de ratio
+        val ratioTexto = metodo.ratio ?: "1:$ratioRecomendado"
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Ratio sugerido",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        ratioTexto,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                OutlinedButton(
+                    onClick = { ratioBloqueado = !ratioBloqueado },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = if (ratioBloqueado) "Bloqueado" else "Editable",
+                        modifier = Modifier.size(16.dp),
+                        tint = if (ratioBloqueado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = if (ratioBloqueado) "Bloqueado" else "Editable",
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(20.dp))
 
         // ---- Selección de café ----
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Selecciona un café", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(
+                "Selecciona tu café",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onRefreshBolsas) {
-                Text("Actualizar", fontSize = 12.sp)
+            IconButton(onClick = onRefreshBolsas) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Actualizar",
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
 
         if (isLoadingBolsas) {
             CircularProgressIndicator(
@@ -147,7 +239,8 @@ fun ParametrosExtraccionScreen(
                     .size(32.dp)
                     .align(Alignment.CenterHorizontally),
                 strokeWidth = 3.dp,
-                color = XantinaPrimary
+                color = XantinaPrimary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         } else if (bolsasCafe.isEmpty()) {
             Text(
@@ -196,7 +289,7 @@ fun ParametrosExtraccionScreen(
                                 val progreso =
                                     if (bolsa.pesoInicial <= 0) 0f else (bolsa.pesoRestante / bolsa.pesoInicial).toFloat()
                                 CircularProgressIndicator(
-                                    progress = progreso.coerceIn(0f, 1f),
+                                    progress = { progreso.coerceIn(0f, 1f) },
                                     modifier = Modifier.size(36.dp),
                                     strokeWidth = 4.dp,
                                     color = XantinaPrimary
@@ -233,7 +326,7 @@ fun ParametrosExtraccionScreen(
                     val progreso =
                         if (bolsa.pesoInicial <= 0) 0f else (restanteEstimado / bolsa.pesoInicial).toFloat()
                     CircularProgressIndicator(
-                        progress = progreso.coerceIn(0f, 1f),
+                        progress = { progreso.coerceIn(0f, 1f) },
                         modifier = Modifier.size(48.dp),
                         strokeWidth = 5.dp,
                         color = XantinaPrimary
@@ -257,39 +350,107 @@ fun ParametrosExtraccionScreen(
             Spacer(Modifier.height(24.dp))
         }
 
-        // ---- Cantidad café ----
-        Text("Cantidad de café (g):", fontSize = 16.sp)
-        Slider(
-            value = cantidadCafe.toFloat(),
-            onValueChange = { cantidadCafe = it.toInt() },
-            valueRange = 5f..30f
-        )
-        Text("$cantidadCafe g")
+        // Card de cantidades
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // ---- Cantidad café ----
+                Text(
+                    "Cantidad de café (g):",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = cantidadCafe.toFloat(),
+                    onValueChange = { cantidadCafe = it.toInt() },
+                    valueRange = 5f..30f
+                )
+                Text(
+                    "$cantidadCafe g",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = XantinaPrimary
+                )
 
-        Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
-        // ---- Cantidad agua ----
-        Text("Cantidad de agua (ml):", fontSize = 16.sp)
-        OutlinedTextField(
-            value = cantidadAgua.toString(),
-            onValueChange = { value ->
-                val newValue = value.toIntOrNull()
-                if (newValue != null && newValue > 0) {
-                    cantidadAgua = newValue
+                // ---- Cantidad agua ----
+                Text(
+                    "Cantidad de agua (ml):",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = cantidadAgua.toString(),
+                    onValueChange = { value ->
+                        val newValue = value.toIntOrNull()
+                        if (newValue != null && newValue > 0) {
+                            cantidadAgua = newValue
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(Modifier.height(16.dp))
+                val ratioTextoActual = metodo.ratio ?: "1:$ratioRecomendado"
+                Text(
+                    "Ratio recomendado: $cantidadCafe g × $ratioTextoActual ≈ $cantidadAgua ml",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Card de tiempo estimado
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = XantinaSecondary.copy(alpha = 0.15f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "⏱",
+                    fontSize = 28.sp
+                )
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        "Tiempo estimado de preparación",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "$tiempoEstimadoMinutos minutos",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = XantinaSecondary
+                    )
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(16.dp))
-        val ratioTextoActual = metodo.ratio ?: "1:$ratioRecomendado"
-        Text(
-            "Ratio recomendado: $cantidadCafe g × $ratioTextoActual ≈ $cantidadAgua ml",
-            fontSize = 14.sp
-        )
-        Spacer(Modifier.height(16.dp))
-
-        Text("Tiempo estimado: $tiempoEstimadoMinutos min", color = XantinaSecondary)
+            }
+        }
 
         Spacer(Modifier.height(32.dp))
 
@@ -299,11 +460,19 @@ fun ParametrosExtraccionScreen(
                     onStart(bolsa.id, cantidadCafe)
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
             enabled = cafeSeleccionado != null,
-            colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary)
+            colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Start", color = MaterialTheme.colorScheme.surface)
+            Text(
+                "Iniciar extracción",
+                color = MaterialTheme.colorScheme.surface,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
