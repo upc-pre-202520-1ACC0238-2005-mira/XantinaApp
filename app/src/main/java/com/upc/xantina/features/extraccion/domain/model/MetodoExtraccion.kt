@@ -1,6 +1,40 @@
 package com.upc.xantina.features.extraccion.domain.model
 
 /**
+ * Representa un paso individual en el proceso de extracción
+ */
+data class PasoExtraccion(
+    val step: Int,
+    val timeStart: Int,
+    val timeEnd: Int,
+    val action: String,
+    val waterMl: Int,
+    val calculation: String?,
+    val requiereAccionManual: Boolean = false
+) {
+    /**
+     * Obtiene la duración del paso en segundos
+     */
+    fun getDuracionSegundos(): Int = timeEnd - timeStart
+}
+
+/**
+ * Configuración detallada del método con pasos
+ */
+data class ConfiguracionMetodo(
+    val grind: String,
+    val temperature: String,
+    val base: BaseParametros,
+    val totalTimeSeconds: Int,
+    val steps: List<PasoExtraccion>
+)
+
+data class BaseParametros(
+    val cafeG: Int,
+    val aguaTotalMl: Int
+)
+
+/**
  * Entidad de dominio MetodoExtraccion
  * Representa un método de preparación de café
  */
@@ -14,7 +48,9 @@ data class MetodoExtraccion(
     val temperatura: Int? = null,
     val ratio: String? = null,
     val creadorId: String,
-    val esPublica: Boolean = true
+    val esPublica: Boolean = true,
+    val configuracion: ConfiguracionMetodo? = null,
+    val esPorDefecto: Boolean = false
 ) {
     /**
      * Obtiene el tiempo de preparación en minutos
@@ -46,6 +82,11 @@ data class MetodoExtraccion(
             if (it.isLowerCase()) it.titlecase() else it.toString() 
         }
     }
+    
+    /**
+     * Verifica si tiene configuración de pasos
+     */
+    fun tienePasosConfigurados(): Boolean = configuracion != null && configuracion.steps.isNotEmpty()
 }
 
 enum class Dificultad {

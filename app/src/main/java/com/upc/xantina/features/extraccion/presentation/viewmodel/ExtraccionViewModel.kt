@@ -6,7 +6,11 @@ import com.upc.xantina.features.extraccion.domain.model.Extraccion
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.features.extraccion.domain.usecase.GetExtraccionesRecientesUseCase
 import com.upc.xantina.features.extraccion.domain.usecase.GetMetodosExtraccionUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.GetBolsasCafeUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.ConsumirBolsaCafeUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.CreateBolsaCafeUseCase
 import com.upc.xantina.features.extraccion.domain.usecase.GuardarExtraccionUseCase
+import com.upc.xantina.features.extraccion.domain.model.BolsaCafeInput
 import com.upc.xantina.features.extraccion.presentation.state.ExtraccionUiState
 import com.upc.xantina.features.extraccion.presentation.state.MetodoFiltro
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +26,10 @@ import java.time.LocalDateTime
 class ExtraccionViewModel @Inject constructor(
     private val getMetodosExtraccionUseCase: GetMetodosExtraccionUseCase,
     private val getExtraccionesRecientesUseCase: GetExtraccionesRecientesUseCase,
-    private val guardarExtraccionUseCase: GuardarExtraccionUseCase
+    private val guardarExtraccionUseCase: GuardarExtraccionUseCase,
+    private val getBolsasCafeUseCase: GetBolsasCafeUseCase,
+    private val consumirBolsaCafeUseCase: ConsumirBolsaCafeUseCase,
+    private val createBolsaCafeUseCase: CreateBolsaCafeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExtraccionUiState(isLoading = true))
@@ -34,7 +41,13 @@ class ExtraccionViewModel @Inject constructor(
     fun cargarDatos(usuarioId: String?, postAction: (() -> Unit)? = null) {
         ultimoUsuarioId = usuarioId
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    isLoadingBolsas = true,
+                    errorMessage = null
+                )
+            }
 
             val metodosDeferred = async { getMetodosExtraccionUseCase() }
             val recientesDeferred = async {
@@ -44,11 +57,21 @@ class ExtraccionViewModel @Inject constructor(
                     getExtraccionesRecientesUseCase(usuarioId, limite = 5)
                 }
             }
+            val bolsasDeferred = async {
+                if (usuarioId.isNullOrBlank()) {
+                    Result.success(emptyList())
+                } else {
+                    getBolsasCafeUseCase()
+                }
+            }
 
             val metodosResult = metodosDeferred.await()
             val recientesResult = recientesDeferred.await()
+            val bolsasResult = bolsasDeferred.await()
 
-            val error = metodosResult.exceptionOrNull() ?: recientesResult.exceptionOrNull()
+            val error = metodosResult.exceptionOrNull()
+                ?: recientesResult.exceptionOrNull()
+                ?: bolsasResult.exceptionOrNull()
             val metodos = metodosResult.getOrElse { emptyList() }
             metodosTotales = metodos
 
@@ -56,9 +79,11 @@ class ExtraccionViewModel @Inject constructor(
                 val filtroActual = it.selectedFiltro
                 it.copy(
                     isLoading = false,
+                    isLoadingBolsas = false,
                     errorMessage = error?.message,
                     metodos = aplicarFiltro(metodos, filtroActual, usuarioId),
-                    extraccionesRecientes = recientesResult.getOrElse { emptyList() }
+                    extraccionesRecientes = recientesResult.getOrElse { emptyList() },
+                    bolsasCafe = bolsasResult.getOrElse { emptyList() }
                 )
             }
 
@@ -133,6 +158,66 @@ class ExtraccionViewModel @Inject constructor(
 
     fun consumirMensajes() {
         _uiState.update { it.copy(successMessage = null) }
+    }
+
+    fun refrescarBolsas() {
+        val usuarioId = ultimoUsuarioId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingBolsas = true) }
+            val resultado = getBolsasCafeUseCase()
+            _uiState.update { estado ->
+                estado.copy(
+                    isLoadingBolsas = false,
+                    bolsasCafe = resultado.getOrElse { estado.bolsasCafe },
+                    errorMessage = resultado.exceptionOrNull()?.message ?: estado.errorMessage
+                )
+            }
+        }
+    }
+
+    fun consumirBolsaCafe(bolsaId: String, gramos: Double) {
+        if (gramos <= 0) return
+        viewModelScope.launch {
+            val resultado = consumirBolsaCafeUseCase(bolsaId, gramos)
+            resultado.onSuccess { bolsaActualizada ->
+                _uiState.update { estado ->
+                    estado.copy(
+                        bolsasCafe = estado.bolsasCafe.map { bolsa ->
+                            if (bolsa.id == bolsaActualizada.id) {
+                                bolsa.copy(pesoRestante = bolsaActualizada.pesoRestante)
+                            } else bolsa
+                        }
+                    )
+                }
+            }.onFailure { throwable ->
+                _uiState.update {
+                    it.copy(errorMessage = throwable.message ?: "No se pudo actualizar la bolsa de café.")
+                }
+            }
+        }
+    }
+
+    fun crearBolsaCafe(input: BolsaCafeInput) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingBolsas = true, errorMessage = null) }
+            val resultado = createBolsaCafeUseCase(input)
+            resultado.onSuccess { nuevaBolsa ->
+                _uiState.update { estado ->
+                    estado.copy(
+                        isLoadingBolsas = false,
+                        bolsasCafe = listOf(nuevaBolsa) + estado.bolsasCafe,
+                        successMessage = "Bolsa ${nuevaBolsa.nombre} registrada."
+                    )
+                }
+            }.onFailure { throwable ->
+                _uiState.update {
+                    it.copy(
+                        isLoadingBolsas = false,
+                        errorMessage = throwable.message ?: "No se pudo registrar la bolsa de café."
+                    )
+                }
+            }
+        }
     }
 
     private fun aplicarFiltro(

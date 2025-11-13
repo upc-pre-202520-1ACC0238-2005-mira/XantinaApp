@@ -1,8 +1,16 @@
 package com.upc.xantina.features.extraccion.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,18 +29,21 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,7 +60,8 @@ data class PasoExtraccionUi(
     val instruccion: String,
     val duracionSegundos: Int,
     val animacion: PasoAnimacion,
-    val recordatorio: String
+    val recordatorio: String,
+    val requiereAccionManual: Boolean = false
 )
 
 sealed interface PasoAnimacion {
@@ -104,6 +116,8 @@ fun defaultPasosExtraccion(): List<PasoExtraccionUi> = listOf(
     )
 )
 
+private enum class PasoActionState { ManualWaiting, ManualReady, AutoWaiting, AutoAdvancing, Paused }
+
 @Composable
 private fun PasoProgressIndicator(
     pasoActual: Int,
@@ -146,20 +160,39 @@ fun PasoExtraccionScreen(
     totalPasos: Int = 4,
     metodoNombre: String,
     paso: PasoExtraccionUi,
+    puedeRetroceder: Boolean,
+    onPasoAnterior: () -> Unit,
+    onReiniciarPaso: () -> Unit,
+    onSalirProceso: () -> Unit,
     onPasoCompleto: () -> Unit
 ) {
-    val duracion = paso.duracionSegundos.coerceAtLeast(1)
+    val duracion = paso.duracionSegundos.coerceAtLeast(0)
     var tiempoRestante by remember { mutableIntStateOf(duracion) }
+    var isPaused by remember { mutableStateOf(false) }
 
     LaunchedEffect(pasoActual, paso) {
         tiempoRestante = duracion
-        while (tiempoRestante > 0) {
-            delay(1000)
-            tiempoRestante--
+        isPaused = false
+
+        if (duracion > 0) {
+            while (tiempoRestante > 0) {
+                if (!isPaused) {
+                    delay(1000)
+                    tiempoRestante--
+                } else {
+                    delay(300)
+                }
+            }
+        }
+
+        // Si el paso NO requiere acción manual, avanza automáticamente cuando el timer llegue a 0
+        if (!paso.requiereAccionManual && tiempoRestante <= 0) {
+            delay(500) // Pequeño delay para que el usuario vea que llegó a 0
+            onPasoCompleto()
         }
     }
 
-    val progresoObjetivo = 1f - (tiempoRestante.toFloat() / duracion.toFloat())
+    val progresoObjetivo = if (duracion <= 0) 1f else 1f - (tiempoRestante.toFloat() / duracion.toFloat())
     val progresoAnimado by animateFloatAsState(
         targetValue = progresoObjetivo,
         animationSpec = tween(durationMillis = 600),
@@ -170,16 +203,44 @@ fun PasoExtraccionScreen(
         derivedStateOf { tiempoRestante in 1 until duracion / 2 + 1 }
     }
 
+    val umbralFinal = remember(duracion) { if (duracion <= 0) 0 else minOf(5, duracion) }
+    val estaFinalizando by remember {
+        derivedStateOf { duracion > 0 && tiempoRestante in 1..umbralFinal }
+    }
+
+    val colorProgreso by animateColorAsState(
+        targetValue = if (estaFinalizando) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+        animationSpec = tween(durationMillis = 400),
+        label = "colorProgreso"
+    )
+
+    val escalaTiempo by animateFloatAsState(
+        targetValue = if (estaFinalizando) 1.05f else 1f,
+        animationSpec = tween(durationMillis = 450),
+        label = "escalaTiempo"
+    )
+
     val minutos = tiempoRestante / 60
     val segundos = tiempoRestante % 60
     val formatoTiempo = String.format("%02d:%02d", minutos, segundos)
-    val progresoColor = MaterialTheme.colorScheme.primary
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
             MaterialTheme.colorScheme.background,
             MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
         )
     )
+
+    val accionState by remember {
+        derivedStateOf {
+            when {
+                isPaused -> PasoActionState.Paused
+                paso.requiereAccionManual && tiempoRestante <= 0 -> PasoActionState.ManualReady
+                paso.requiereAccionManual -> PasoActionState.ManualWaiting
+                tiempoRestante <= 0 -> PasoActionState.AutoAdvancing
+                else -> PasoActionState.AutoWaiting
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -189,6 +250,44 @@ fun PasoExtraccionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = onSalirProceso,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Salir")
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onPasoAnterior,
+                    enabled = puedeRetroceder
+                ) {
+                    Text("Anterior")
+                }
+                OutlinedButton(
+                    onClick = {
+                        tiempoRestante = duracion
+                        isPaused = false
+                        onReiniciarPaso()
+                    }
+                ) {
+                    Text("Reiniciar")
+                }
+                OutlinedButton(
+                    onClick = { isPaused = !isPaused }
+                ) {
+                    Text(if (isPaused) "Reanudar ▶" else "Pausar ⏸")
+                }
+            }
+        }
+
         Text(
             text = metodoNombre,
             fontSize = 22.sp,
@@ -271,7 +370,7 @@ fun PasoExtraccionScreen(
             progress = { progresoAnimado.coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth(),
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            color = progresoColor
+            color = colorProgreso
         )
 
         Spacer(Modifier.height(20.dp))
@@ -279,7 +378,12 @@ fun PasoExtraccionScreen(
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
             shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = escalaTiempo
+                    scaleY = escalaTiempo
+                }
         ) {
             Column(
                 modifier = Modifier
@@ -305,14 +409,102 @@ fun PasoExtraccionScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        AnimatedVisibility(visible = tiempoRestante <= 0) {
-            Button(
-                onClick = onPasoCompleto,
-                colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Siguiente")
+        AnimatedContent(
+            targetState = accionState,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(250)) + scaleIn(initialScale = 0.95f)) togetherWith
+                    (fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.95f))
+            },
+            label = "pasoAction"
+        ) { state ->
+            when (state) {
+                PasoActionState.ManualWaiting -> {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Completa el paso y espera a que finalice el tiempo.",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                PasoActionState.ManualReady -> {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "¡Listo! Puedes avanzar cuando quieras.",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                PasoActionState.AutoWaiting -> {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Avanzaremos automáticamente cuando termine el tiempo.",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                PasoActionState.AutoAdvancing -> {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "✓ Pasando al siguiente paso...",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                PasoActionState.Paused -> {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Temporizador en pausa",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        val puedeAvanzarManualmente = !paso.requiereAccionManual || tiempoRestante <= 0
+        Button(
+            onClick = {
+                tiempoRestante = 0
+                onPasoCompleto()
+            },
+            enabled = puedeAvanzarManualmente,
+            colors = ButtonDefaults.buttonColors(containerColor = XantinaPrimary),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Siguiente")
         }
     }
 }

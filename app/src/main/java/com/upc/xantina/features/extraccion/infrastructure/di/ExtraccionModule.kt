@@ -3,6 +3,9 @@ package com.upc.xantina.features.extraccion.infrastructure.di
 import com.upc.xantina.features.extraccion.domain.repository.ExtraccionRepository
 import com.upc.xantina.features.extraccion.domain.usecase.GetExtraccionesRecientesUseCase
 import com.upc.xantina.features.extraccion.domain.usecase.GetMetodosExtraccionUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.GetBolsasCafeUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.ConsumirBolsaCafeUseCase
+import com.upc.xantina.features.extraccion.domain.usecase.CreateBolsaCafeUseCase
 import com.upc.xantina.features.extraccion.domain.usecase.GuardarExtraccionUseCase
 import com.upc.xantina.features.extraccion.infrastructure.repository.ExtraccionRepositoryImpl
 import dagger.Binds
@@ -41,5 +44,20 @@ object ExtraccionUseCaseModule {
     fun provideGuardarExtraccionUseCase(
         repository: ExtraccionRepository
     ): GuardarExtraccionUseCase = GuardarExtraccionUseCase(repository)
+
+    @Provides
+    fun provideGetBolsasCafeUseCase(
+        repository: ExtraccionRepository
+    ): GetBolsasCafeUseCase = GetBolsasCafeUseCase(repository)
+
+    @Provides
+    fun provideConsumirBolsaCafeUseCase(
+        repository: ExtraccionRepository
+    ): ConsumirBolsaCafeUseCase = ConsumirBolsaCafeUseCase(repository)
+
+    @Provides
+    fun provideCreateBolsaCafeUseCase(
+        repository: ExtraccionRepository
+    ): CreateBolsaCafeUseCase = CreateBolsaCafeUseCase(repository)
 }
 

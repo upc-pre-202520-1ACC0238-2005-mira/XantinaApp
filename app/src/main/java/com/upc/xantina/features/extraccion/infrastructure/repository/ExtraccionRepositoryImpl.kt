@@ -1,9 +1,15 @@
 package com.upc.xantina.features.extraccion.infrastructure.repository
 
+import com.upc.xantina.core.domain.repository.AuthRepository
 import com.upc.xantina.features.extraccion.data.mapper.ExtraccionMapper
+import com.upc.xantina.features.extraccion.data.mapper.BolsaCafeMapper
+import com.upc.xantina.features.extraccion.data.datasource.ConsumirBolsaCafeRequest
+import com.upc.xantina.features.extraccion.data.datasource.CreateBolsaCafeRequest
 import com.upc.xantina.features.extraccion.domain.model.Dificultad
 import com.upc.xantina.features.extraccion.domain.model.Extraccion
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
+import com.upc.xantina.features.extraccion.domain.model.BolsaCafe
+import com.upc.xantina.features.extraccion.domain.model.BolsaCafeInput
 import com.upc.xantina.features.extraccion.domain.repository.ExtraccionRepository
 import com.upc.xantina.features.extraccion.infrastructure.datasource.ExtraccionRemoteDataSource
 import java.io.IOException
@@ -15,7 +21,8 @@ import retrofit2.HttpException
 
 @Singleton
 class ExtraccionRepositoryImpl @Inject constructor(
-    private val remoteDataSource: ExtraccionRemoteDataSource
+    private val remoteDataSource: ExtraccionRemoteDataSource,
+    private val authRepository: AuthRepository
 ) : ExtraccionRepository {
 
     override suspend fun getMetodosExtraccion(): Result<List<MetodoExtraccion>> =
@@ -116,6 +123,44 @@ class ExtraccionRepositoryImpl @Inject constructor(
         return Result.failure(UnsupportedOperationException("No implementado aún"))
     }
 
+    override suspend fun getBolsasCafe(): Result<List<BolsaCafe>> =
+        withAuthContext { token ->
+            val bolsasDto = remoteDataSource.obtenerBolsasCafe(token)
+            BolsaCafeMapper.toDomainList(bolsasDto)
+        }
+
+    override suspend fun consumirBolsaCafe(
+        bolsaId: String,
+        gramos: Double
+    ): Result<BolsaCafe> = withAuthContext { token ->
+        val dto = remoteDataSource.consumirBolsaCafe(
+            token,
+            ConsumirBolsaCafeRequest(
+                bolsaId = bolsaId,
+                gramos = gramos
+            )
+        )
+        BolsaCafeMapper.toDomain(dto)
+    }
+
+    override suspend fun crearBolsaCafe(input: BolsaCafeInput): Result<BolsaCafe> =
+        withAuthContext { token ->
+            val dto = remoteDataSource.crearBolsaCafe(
+                token,
+                CreateBolsaCafeRequest(
+                    nombre = input.nombre,
+                    pesoInicial = input.pesoInicial,
+                    pesoRestante = input.pesoRestante,
+                    origen = input.origen,
+                    tostador = input.tostador,
+                    varietal = input.varietal,
+                    notas = input.notas,
+                    moliendaSugerida = input.moliendaSugerida
+                )
+            )
+            BolsaCafeMapper.toDomain(dto)
+        }
+
     private fun inferirDificultad(extraccion: Extraccion): Dificultad {
         val tiempo = extraccion.tiempoExtraccion ?: return Dificultad.INTERMEDIO
         return when {
@@ -125,11 +170,24 @@ class ExtraccionRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun <T> withAuthContext(
+        block: suspend (token: String) -> T
+    ): Result<T> = withContext(Dispatchers.IO) {
+        val token = authRepository.getAuthToken()
+        if (token.isNullOrBlank()) {
+            return@withContext Result.failure<T>(
+                IllegalStateException("Sesión no disponible. Inicia sesión nuevamente.")
+            )
+        }
+        runCatching { block(token) }.mapError()
+    }
+
     private fun <T> Result<T>.mapError(): Result<T> = this.mapError { throwable ->
         when (throwable) {
             is HttpException -> {
                 val message = when (throwable.code()) {
                     404 -> "No se encontraron datos de extracción."
+                    401 -> "Sesión expirada. Inicia sesión otra vez."
                     else -> "Error del servidor (${throwable.code()})."
                 }
                 Exception(message, throwable)

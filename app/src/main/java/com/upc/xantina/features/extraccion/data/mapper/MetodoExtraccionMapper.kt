@@ -1,8 +1,14 @@
 package com.upc.xantina.features.extraccion.data.mapper
 
 import com.upc.xantina.features.extraccion.data.datasource.MetodoExtraccionDto
+import com.upc.xantina.features.extraccion.data.datasource.ConfiguracionMetodoDto
+import com.upc.xantina.features.extraccion.data.datasource.PasoExtraccionDto
+import com.upc.xantina.features.extraccion.data.datasource.BaseParametrosDto
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.features.extraccion.domain.model.Dificultad
+import com.upc.xantina.features.extraccion.domain.model.ConfiguracionMetodo
+import com.upc.xantina.features.extraccion.domain.model.PasoExtraccion
+import com.upc.xantina.features.extraccion.domain.model.BaseParametros
 
 /**
  * Mapper para convertir entre DTOs y entidades de MetodoExtraccion
@@ -23,7 +29,40 @@ object MetodoExtraccionMapper {
             temperatura = dto.temperatura,
             ratio = dto.ratio,
             creadorId = "",
-            esPublica = true
+            esPublica = true,
+            configuracion = dto.configuracion?.let { mapConfiguracion(it) },
+            esPorDefecto = dto.esPorDefecto ?: false
+        )
+    }
+    
+    /**
+     * Convierte configuración DTO a entidad
+     */
+    private fun mapConfiguracion(dto: ConfiguracionMetodoDto): ConfiguracionMetodo {
+        return ConfiguracionMetodo(
+            grind = dto.grind,
+            temperature = dto.temperature,
+            base = BaseParametros(
+                cafeG = dto.base.cafeG,
+                aguaTotalMl = dto.base.aguaTotalMl
+            ),
+            totalTimeSeconds = dto.totalTimeSeconds,
+            steps = dto.steps.map { mapPaso(it) }
+        )
+    }
+    
+    /**
+     * Convierte paso DTO a entidad
+     */
+    private fun mapPaso(dto: PasoExtraccionDto): PasoExtraccion {
+        return PasoExtraccion(
+            step = dto.step,
+            timeStart = dto.timeStart,
+            timeEnd = dto.timeEnd,
+            action = dto.action,
+            waterMl = dto.waterMl,
+            calculation = dto.calculation,
+            requiereAccionManual = dto.requiereAccionManual ?: false
         )
     }
     
@@ -39,7 +78,40 @@ object MetodoExtraccionMapper {
             icono = domain.icono,
             dificultad = mapDificultadToString(domain.dificultad),
             temperatura = domain.temperatura,
-            ratio = domain.ratio
+            ratio = domain.ratio,
+            configuracion = domain.configuracion?.let { mapConfiguracionToDto(it) },
+            esPorDefecto = domain.esPorDefecto
+        )
+    }
+    
+    /**
+     * Convierte configuración entidad a DTO
+     */
+    private fun mapConfiguracionToDto(config: ConfiguracionMetodo): ConfiguracionMetodoDto {
+        return ConfiguracionMetodoDto(
+            grind = config.grind,
+            temperature = config.temperature,
+            base = BaseParametrosDto(
+                cafeG = config.base.cafeG,
+                aguaTotalMl = config.base.aguaTotalMl
+            ),
+            totalTimeSeconds = config.totalTimeSeconds,
+            steps = config.steps.map { mapPasoToDto(it) }
+        )
+    }
+    
+    /**
+     * Convierte paso entidad a DTO
+     */
+    private fun mapPasoToDto(paso: PasoExtraccion): PasoExtraccionDto {
+        return PasoExtraccionDto(
+            step = paso.step,
+            timeStart = paso.timeStart,
+            timeEnd = paso.timeEnd,
+            action = paso.action,
+            waterMl = paso.waterMl,
+            calculation = paso.calculation,
+            requiereAccionManual = paso.requiereAccionManual
         )
     }
     

@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.upc.xantina.features.extraccion.domain.model.Extraccion
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.features.extraccion.presentation.state.MetodoFiltro
@@ -53,7 +52,7 @@ fun ExtraccionScreen(
     onNavigateToAll: () -> Unit,
     onMethodClick: (MetodoExtraccion) -> Unit,
     onRecentClick: (String) -> Unit,
-    viewModel: ExtraccionViewModel = hiltViewModel()
+    viewModel: ExtraccionViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val contexto = LocalContext.current
