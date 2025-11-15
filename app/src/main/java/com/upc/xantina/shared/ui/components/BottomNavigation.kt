@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -47,10 +48,10 @@ fun XantinaBottomNavigation(
             onClick = { onTabSelected(BottomNavTab.EXTRACCION) }
         )
         
-        // Tab Tienda
+        // Tab Inventory
         BottomNavItem(
-            icon = Icons.Default.ShoppingCart,
-            label = "Tienda",
+            icon = Icons.Default.Info,
+            label = "Inventory",
             isSelected = selectedTab == BottomNavTab.TIENDA,
             onClick = { onTabSelected(BottomNavTab.TIENDA) }
         )
@@ -61,6 +62,14 @@ fun XantinaBottomNavigation(
             label = "Conecta",
             isSelected = selectedTab == BottomNavTab.CONECTA,
             onClick = { onTabSelected(BottomNavTab.CONECTA) }
+        )
+        
+        // Tab Perfil
+        BottomNavItem(
+            icon = Icons.Default.Person,
+            label = "Perfil",
+            isSelected = selectedTab == BottomNavTab.PROFILE,
+            onClick = { onTabSelected(BottomNavTab.PROFILE) }
         )
     }
 }

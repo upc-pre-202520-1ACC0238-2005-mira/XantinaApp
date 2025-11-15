@@ -5,201 +5,293 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-data class Publicacion(
-    val autor: String,
-    val tiempo: String,
-    val titulo: String,
-    val contenido: String,
-    var favoritos: Int,
-    val comentarios: MutableList<String>
-)
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.upc.xantina.core.domain.repository.AuthRepository
+import com.upc.xantina.features.social.domain.model.PostExtractionData
+import com.upc.xantina.features.social.presentation.state.SearchUiState
+import com.upc.xantina.features.social.presentation.viewmodel.SocialViewModel
+import com.upc.xantina.features.social.ui.SocialFeedScreen
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConectaScreen(onProfileClick: () -> Unit) {
-    var publicaciones by remember {
-        mutableStateOf(
-            listOf(
-                Publicacion(
-                    autor = "Ana Martínez",
-                    tiempo = "Hace 2 horas",
-                    titulo = "V60",
-                    contenido = "Colombia Geisha ☕",
-                    favoritos = 10,
-                    comentarios = mutableListOf("¡Se ve delicioso!", "¿Qué molienda usaste?")
-                ),
-                Publicacion(
-                    autor = "Carlos Ruiz",
-                    tiempo = "Hace 5 horas",
-                    titulo = "Cold Brew",
-                    contenido = "Preparé un cold brew con granos etíopes y salió 🔥",
-                    favoritos = 7,
-                    comentarios = mutableListOf("Lo intentaré mañana", "Perfecto para el verano 😎")
-                ),
-                Publicacion(
-                    autor = "Lucía Fernández",
-                    tiempo = "Hace 1 día",
-                    titulo = "Chemex",
-                    contenido = "Mi primer intento con Chemex. ¿Algún consejo?",
-                    favoritos = 5,
-                    comentarios = mutableListOf("Agua a 92°C!", "Filtro bien enjuagado primero!")
-                )
-            )
-        )
-    }
-
+fun ConectaScreen(
+    authRepository: AuthRepository,
+    onFollowRecipe: (PostExtractionData) -> Unit = {},
+    viewModel: SocialViewModel = hiltViewModel()
+) {
+    val scope = rememberCoroutineScope()
+    var showSearch by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val searchState by viewModel.searchState.collectAsState()
+    
     Column(modifier = Modifier.fillMaxSize()) {
-
-        Row(
+        // Header con buscador
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF4B2E2E))
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
-                Text("Conecta", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Comunidad cafetera", color = Color.White, fontSize = 14.sp)
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { onProfileClick() }
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = "Perfil",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text("Mi Perfil", color = Color.White, fontSize = 12.sp)
-            }
-        }
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(publicaciones) { publicacion ->
-                PublicacionCard(publicacion)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PublicacionCard(publicacion: Publicacion) {
-    var isFav by remember { mutableStateOf(false) }
-    var showComments by remember { mutableStateOf(false) }
-    var newComment by remember { mutableStateOf("") }
-
-    Card(
-        modifier = Modifier
-            .padding(12.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(publicacion.autor, fontWeight = FontWeight.Bold)
-                Text(publicacion.tiempo, fontSize = 12.sp, color = Color.Gray)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = publicacion.titulo,
-                color = Color(0xFF4B2E2E),
                 modifier = Modifier
-                    .background(Color(0xFFF5E6D3), shape = RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(publicacion.contenido)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = {
-                    isFav = !isFav
-                    if (isFav) publicacion.favoritos++ else publicacion.favoritos--
-                }) {
-                    Icon(
-                        imageVector = if (isFav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = "Favorito",
-                        tint = if (isFav) Color.Red else Color.Gray
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Conecta",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Comunidad cafetera",
+                        color = Color.White,
+                        fontSize = 14.sp
                     )
                 }
-                Text("${publicacion.favoritos}")
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "💬 ${publicacion.comentarios.size}",
-                    modifier = Modifier
-                        .clickable { showComments = !showComments }
-                        .padding(4.dp),
-                    color = Color(0xFF4B2E2E)
-                )
+                
+                // Botón de búsqueda
+                IconButton(
+                    onClick = { showSearch = !showSearch },
+                    modifier = Modifier.background(
+                        Color.White.copy(alpha = 0.2f),
+                        shape = CircleShape
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (showSearch) Icons.Filled.Close else Icons.Filled.Search,
+                        contentDescription = "Buscar",
+                        tint = Color.White
+                    )
+                }
             }
-
-            if (showComments) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Column(
+            
+            // Barra de búsqueda
+            if (showSearch) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFF5E6D3), shape = RoundedCornerShape(8.dp))
-                        .padding(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    for (comentario in publicacion.comentarios) {
-                        Text("• $comentario", fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
                     OutlinedTextField(
-                        value = newComment,
-                        onValueChange = { newComment = it },
-                        placeholder = { Text("Escribe un comentario...") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Button(
-                        onClick = {
-                            if (newComment.isNotBlank()) {
-                                publicacion.comentarios.add(newComment)
-                                newComment = ""
+                        value = searchQuery,
+                        onValueChange = { 
+                            searchQuery = it
+                            scope.launch {
+                                val token = authRepository.getAuthToken()
+                                if (token != null && it.isNotBlank()) {
+                                    viewModel.searchUsers(token, it)
+                                } else if (it.isBlank()) {
+                                    viewModel.searchUsers(token ?: "", "")
+                                }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B2E2E)),
-                        modifier = Modifier.align(Alignment.End)
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Buscar usuarios o cafeterías...") },
+                        leadingIcon = {
+                            Icon(Icons.Filled.Search, contentDescription = "Buscar")
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotBlank()) {
+                                IconButton(onClick = { 
+                                    searchQuery = ""
+                                    scope.launch {
+                                        val token = authRepository.getAuthToken()
+                                        if (token != null) {
+                                            viewModel.searchUsers(token, "")
+                                        }
+                                    }
+                                }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "Limpiar")
+                                }
+                            }
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedIndicatorColor = Color(0xFF6F4E37),
+                            unfocusedIndicatorColor = Color.Gray
+                        ),
+                        singleLine = true
+                    )
+                }
+            }
+        }
+        
+        // Resultados de búsqueda o Feed
+        if (showSearch && searchQuery.isNotBlank()) {
+            // Mostrar resultados de búsqueda
+            when (val state = searchState) {
+                is SearchUiState.Idle -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("Comentar", color = Color.White)
+                        Text(
+                            "Escribe para buscar usuarios o cafeterías",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+                is SearchUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF4B2E2E))
+                    }
+                }
+                is SearchUiState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                state.message,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+                is SearchUiState.Success -> {
+                    if (state.users.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "No se encontraron resultados",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(state.users) { user ->
+                                UserSearchResultItem(
+                                    user = user,
+                                    onFollowClick = {
+                                        scope.launch {
+                                            val token = authRepository.getAuthToken()
+                                            if (token != null) {
+                                                viewModel.toggleFollow(token, user.id)
+                                            }
+                                        }
+                                    }
+                                )
+                                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                            }
+                        }
                     }
                 }
             }
+        } else {
+            // Feed Social (solo usuarios seguidos)
+            SocialFeedScreen(
+                authRepository = authRepository,
+                onFollowRecipe = onFollowRecipe,
+                useFollowingFeed = true
+            )
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun PreviewConectaScreen() {
-    ConectaScreen(onProfileClick = {})
+fun UserSearchResultItem(
+    user: com.upc.xantina.features.social.domain.model.UserSearchResult,
+    onFollowClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF4B2E2E)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = user.name.firstOrNull()?.uppercase() ?: "U",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // Información del usuario
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = user.name,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = Color(0xFF2C1810)
+            )
+            Text(
+                text = user.email,
+                fontSize = 13.sp,
+                color = Color.Gray
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${user.followersCount} seguidores",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+                if (user.role == "cafe") {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "☕ Cafetería",
+                        fontSize = 12.sp,
+                        color = Color(0xFF6F4E37),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+        
+        // Botón seguir/dejar de seguir
+        Button(
+            onClick = onFollowClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (user.isFollowing) Color.Gray else Color(0xFF4B2E2E)
+            ),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Text(
+                text = if (user.isFollowing) "Siguiendo" else "Seguir",
+                fontSize = 14.sp,
+                color = Color.White
+            )
+        }
+    }
 }

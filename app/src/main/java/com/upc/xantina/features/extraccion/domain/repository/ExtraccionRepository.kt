@@ -2,6 +2,8 @@ package com.upc.xantina.features.extraccion.domain.repository
 
 import com.upc.xantina.features.extraccion.domain.model.Extraccion
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
+import com.upc.xantina.features.extraccion.domain.model.BolsaCafe
+import com.upc.xantina.features.extraccion.domain.model.BolsaCafeInput
 
 /**
  * Interface del repositorio de extracción
@@ -21,6 +23,13 @@ interface ExtraccionRepository {
      * @return Result<MetodoExtraccion?> el método encontrado o null
      */
     suspend fun getMetodoExtraccionById(id: String): Result<MetodoExtraccion?>
+    
+    /**
+     * Obtiene una extracción/receta por ID
+     * @param id ID de la extracción
+     * @return Result<Extraccion?> la extracción encontrada o null
+     */
+    suspend fun getExtraccionById(id: String): Result<Extraccion?>
     
     /**
      * Obtiene las extracciones recientes del usuario
@@ -84,4 +93,19 @@ interface ExtraccionRepository {
      * @return Result<Map<String, Any>> estadísticas (total, promedio calificación, etc.)
      */
     suspend fun getEstadisticasExtracciones(usuarioId: String): Result<Map<String, Any>>
+
+    /**
+     * Obtiene las bolsas de café registradas del usuario autenticado
+     */
+    suspend fun getBolsasCafe(): Result<List<BolsaCafe>>
+
+    /**
+     * Descuenta café consumido de una bolsa
+     */
+    suspend fun consumirBolsaCafe(bolsaId: String, gramos: Double): Result<BolsaCafe>
+
+    /**
+     * Crea una nueva bolsa de café
+     */
+    suspend fun crearBolsaCafe(input: BolsaCafeInput): Result<BolsaCafe>
 }

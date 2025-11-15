@@ -1,5 +1,6 @@
 package com.upc.xantina.features.extraccion.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,13 +11,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,86 +36,304 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.upc.xantina.shared.ui.components.BackgroundGradient
-import com.upc.xantina.shared.ui.components.BottomNavTab
-import com.upc.xantina.shared.ui.components.XantinaBottomNavigation
+import com.upc.xantina.features.extraccion.domain.model.Extraccion
+import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
+import com.upc.xantina.features.extraccion.presentation.state.MetodoFiltro
+import com.upc.xantina.features.extraccion.presentation.viewmodel.ExtraccionViewModel
 import com.upc.xantina.shared.ui.components.MethodCard
 import com.upc.xantina.shared.ui.components.RecentCard
-import com.upc.xantina.shared.ui.components.XantinaButton
 import com.upc.xantina.shared.ui.theme.XantinaPrimary
 import com.upc.xantina.shared.ui.theme.XantinaTextPrimary
 import com.upc.xantina.shared.ui.theme.XantinaTextSecondary
 
 @Composable
 fun ExtraccionScreen(
-    onNavigateToCreate: () -> Unit = {},
-    onNavigateToAll: () -> Unit = {},
-    onMethodClick: (String) -> Unit = {},
-    onRecentClick: (String) -> Unit = {}
+    userId: String?,
+    onNavigateToCreate: (String?) -> Unit,
+    onNavigateToAll: () -> Unit,
+    onMethodClick: (MetodoExtraccion) -> Unit,
+    onRecentClick: (String) -> Unit,
+    viewModel: ExtraccionViewModel
 ) {
-    // Datos mock para la demo
-    var metodos by remember { mutableStateOf(getMockMetodos()) }
-    var extraccionesRecientes by remember { mutableStateOf(getMockExtraccionesRecientes()) }
-    
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Header fijo
+    val uiState by viewModel.uiState.collectAsState()
+    val contexto = LocalContext.current
+    var showMethodSelection by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userId) {
+        viewModel.cargarDatos(userId)
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        val mensaje = uiState.successMessage ?: return@LaunchedEffect
+        Toast.makeText(contexto, mensaje, Toast.LENGTH_SHORT).show()
+        viewModel.consumirMensajes()
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
         HeaderSection()
-        
-        // Contenido scrolleable
+
+        MetodoFiltroRow(
+            filtroActual = uiState.selectedFiltro,
+            onFiltroSeleccionado = viewModel::seleccionarFiltro
+        )
+
         Box(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 80.dp) // Espacio para el FAB
-            ) {
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Sección Métodos
-                MetodosSection(
-                    metodos = metodos,
-                    onMethodClick = onMethodClick
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(42.dp),
+                    color = XantinaPrimary
                 )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Sección Recientes
-                RecientesSection(
-                    extraccionesRecientes = extraccionesRecientes,
-                    onRecentClick = onRecentClick,
-                    onNavigateToAll = onNavigateToAll
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 16.dp, bottom = 100.dp)
+                ) {
+                    MetodosSection(
+                        metodos = uiState.metodos,
+                        onMethodClick = onMethodClick
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    RecientesSection(
+                        extraccionesRecientes = uiState.extraccionesRecientes,
+                        onRecentClick = onRecentClick,
+                        onNavigateToAll = onNavigateToAll
+                    )
+
+                    uiState.errorMessage?.let { mensaje ->
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = mensaje,
+                            color = Color.Red,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
+
+            // FAB con menú expandible
+            var showFabMenu by remember { mutableStateOf(false) }
             
-            // Floating Action Button
-            FloatingActionButton(
-                onClick = onNavigateToCreate,
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-                containerColor = XantinaPrimary
+                    .padding(24.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Crear nueva extracción",
-                    tint = androidx.compose.ui.graphics.Color.White
-                )
+                // Opciones del menú
+                if (showFabMenu) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(bottom = 80.dp),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Botón X para cerrar (más arriba para evitar superposición)
+                        IconButton(
+                            onClick = { showFabMenu = false },
+                            modifier = Modifier
+                                .background(
+                                    Color(0xFF4B2E2E),
+                                    shape = CircleShape
+                                )
+                                .size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cerrar",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // Opción: Nueva Receta
+                        Card(
+                            modifier = Modifier.clickable {
+                                showFabMenu = false
+                                onNavigateToCreate(userId)
+                            },
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFF6F4E37)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "Nueva Receta",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        // Opción: Nueva Extracción
+                        Card(
+                            modifier = Modifier.clickable {
+                                showFabMenu = false
+                                showMethodSelection = true
+                            },
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFF8D6E63)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "Nueva Extracción",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // FAB principal
+                FloatingActionButton(
+                    onClick = { showFabMenu = !showFabMenu },
+                    containerColor = Color(0xFF4B2E2E),
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 8.dp,
+                        pressedElevation = 12.dp,
+                        hoveredElevation = 10.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (showFabMenu) Icons.Default.Close else Icons.Default.Add,
+                        contentDescription = if (showFabMenu) "Cerrar menú" else "Abrir menú",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }
+    
+    // Diálogo para seleccionar método de extracción
+    if (showMethodSelection) {
+        MethodSelectionDialog(
+            metodos = uiState.metodos,
+            onMethodSelected = { metodo ->
+                showMethodSelection = false
+                onMethodClick(metodo)
+            },
+            onDismiss = { showMethodSelection = false }
+        )
+    }
+}
+
+@Composable
+private fun MethodSelectionDialog(
+    metodos: List<MetodoExtraccion>,
+    onMethodSelected: (MetodoExtraccion) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Selecciona un método",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                metodos.forEach { metodo ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onMethodSelected(metodo) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFF5F5F5)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = metodo.nombre,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF4B2E2E)
+                                )
+                                Text(
+                                    text = metodo.descripcion,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF757575)
+                                )
+                            }
+                            Text(
+                                text = "🕒 ${metodo.tiempoPreparacion}",
+                                fontSize = 14.sp,
+                                color = Color(0xFF6F4E37)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = Color(0xFF6F4E37))
+            }
+        }
+    )
 }
 
 @Composable
@@ -114,30 +344,54 @@ private fun HeaderSection() {
             .background(XantinaPrimary)
             .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        
         Text(
             text = "Extrae",
-            color = androidx.compose.ui.graphics.Color.White,
+            color = Color.White,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
-        
         Spacer(modifier = Modifier.height(4.dp))
-        
         Text(
             text = "Crea tu próxima taza perfecta",
-            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Normal
+            color = Color.White.copy(alpha = 0.9f),
+            fontSize = 14.sp
         )
     }
 }
 
 @Composable
+private fun MetodoFiltroRow(
+    filtroActual: MetodoFiltro,
+    onFiltroSeleccionado: (MetodoFiltro) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        listOf(
+            MetodoFiltro.TODOS to "Todos",
+            MetodoFiltro.MIS_METODOS to "Mis recetas"
+        ).forEach { (filtro, etiqueta) ->
+            FilterChip(
+                selected = filtroActual == filtro,
+                onClick = { onFiltroSeleccionado(filtro) },
+                label = { Text(etiqueta) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = XantinaPrimary,
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+    }
+}
+
+@Composable
 private fun MetodosSection(
-    metodos: List<MetodoExtraccionMock>,
-    onMethodClick: (String) -> Unit
+    metodos: List<MetodoExtraccion>,
+    onMethodClick: (MetodoExtraccion) -> Unit
 ) {
     Column {
         Text(
@@ -147,24 +401,31 @@ private fun MetodosSection(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        
-        metodos.forEach { metodo ->
-            MethodCard(
-                nombre = metodo.nombre,
-                descripcion = metodo.descripcion,
-                tiempoPreparacion = metodo.tiempoPreparacion,
-                icono = metodo.icono,
-                onClick = { onMethodClick(metodo.nombre) }
+
+        if (metodos.isEmpty()) {
+            Text(
+                text = "Aún no tienes métodos disponibles.",
+                color = XantinaTextSecondary,
+                fontSize = 14.sp
             )
-            
-            Spacer(modifier = Modifier.height(12.dp))
+        } else {
+            metodos.forEach { metodo ->
+                MethodCard(
+                    nombre = metodo.nombre,
+                    descripcion = metodo.descripcion,
+                    tiempoPreparacion = metodo.tiempoPreparacion,
+                    icono = metodo.icono,
+                    onClick = { onMethodClick(metodo) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }
 
 @Composable
 private fun RecientesSection(
-    extraccionesRecientes: List<ExtraccionRecienteMock>,
+    extraccionesRecientes: List<Extraccion>,
     onRecentClick: (String) -> Unit,
     onNavigateToAll: () -> Unit
 ) {
@@ -180,10 +441,8 @@ private fun RecientesSection(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-            
-            androidx.compose.material3.TextButton(
-                onClick = onNavigateToAll
-            ) {
+
+            TextButton(onClick = onNavigateToAll) {
                 Text(
                     text = "Ver todas",
                     color = XantinaTextSecondary,
@@ -191,124 +450,28 @@ private fun RecientesSection(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
-        extraccionesRecientes.forEach { extraccion ->
-            RecentCard(
-                nombreCafe = extraccion.nombreCafe,
-                metodoExtraccion = extraccion.metodoExtraccion,
-                fechaHora = extraccion.fechaHora,
-                calificacion = extraccion.calificacion,
-                onClick = { onRecentClick(extraccion.id) }
+
+        if (extraccionesRecientes.isEmpty()) {
+            Text(
+                text = "Aún no registras extracciones.",
+                color = XantinaTextSecondary,
+                fontSize = 14.sp
             )
-            
-            Spacer(modifier = Modifier.height(12.dp))
+        } else {
+            extraccionesRecientes.forEach { extraccion ->
+                RecentCard(
+                    nombreCafe = extraccion.nombreCafe,
+                    metodoExtraccion = extraccion.metodoExtraccion,
+                    fechaHora = extraccion.getFechaHoraCompleta(),
+                    calificacion = extraccion.calificacion,
+                    onClick = {
+                        extraccion.id?.let(onRecentClick)
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
-}
-
-// Datos mock para la demo
-data class MetodoExtraccionMock(
-    val nombre: String,
-    val descripcion: String,
-    val tiempoPreparacion: String,
-    val icono: String
-)
-
-data class ExtraccionRecienteMock(
-    val id: String,
-    val nombreCafe: String,
-    val metodoExtraccion: String,
-    val fechaHora: String,
-    val calificacion: Int
-)
-
-private fun getMockMetodos(): List<MetodoExtraccionMock> {
-    return listOf(
-        MetodoExtraccionMock(
-            nombre = "Prensa Francesa",
-            descripcion = "Cuerpo completo y sabores intensos",
-            tiempoPreparacion = "4 min",
-            icono = "prensa"
-        ),
-        MetodoExtraccionMock(
-            nombre = "V60",
-            descripcion = "Notas brillantes y claridad",
-            tiempoPreparacion = "2-3 min",
-            icono = "v60"
-        ),
-        MetodoExtraccionMock(
-            nombre = "Aeropress",
-            descripcion = "Extracción rápida y consistente",
-            tiempoPreparacion = "1-2 min",
-            icono = "aeropress"
-        ),
-        MetodoExtraccionMock(
-            nombre = "Chemex",
-            descripcion = "Café limpio y elegante",
-            tiempoPreparacion = "4-5 min",
-            icono = "chemex"
-        ),
-        MetodoExtraccionMock(
-            nombre = "Espresso",
-            descripcion = "Intenso y concentrado",
-            tiempoPreparacion = "30 seg",
-            icono = "espresso"
-        )
-    )
-}
-
-private fun getMockExtraccionesRecientes(): List<ExtraccionRecienteMock> {
-    return listOf(
-        ExtraccionRecienteMock(
-            id = "1",
-            nombreCafe = "Colombia Geisha",
-            metodoExtraccion = "V60",
-            fechaHora = "Hoy, 8:30 AM",
-            calificacion = 5
-        ),
-        ExtraccionRecienteMock(
-            id = "2",
-            nombreCafe = "Brasil Natural",
-            metodoExtraccion = "Prensa Francesa",
-            fechaHora = "Ayer, 10:15 AM",
-            calificacion = 4
-        ),
-        ExtraccionRecienteMock(
-            id = "3",
-            nombreCafe = "Etiopía Yirgacheffe",
-            metodoExtraccion = "Chemex",
-            fechaHora = "Ayer, 2:30 PM",
-            calificacion = 5
-        ),
-        ExtraccionRecienteMock(
-            id = "4",
-            nombreCafe = "Guatemala Huehuetenango",
-            metodoExtraccion = "Aeropress",
-            fechaHora = "Hace 2 días, 9:45 AM",
-            calificacion = 4
-        ),
-        ExtraccionRecienteMock(
-            id = "5",
-            nombreCafe = "Kenya AA",
-            metodoExtraccion = "V60",
-            fechaHora = "Hace 3 días, 11:20 AM",
-            calificacion = 5
-        ),
-        ExtraccionRecienteMock(
-            id = "6",
-            nombreCafe = "Costa Rica Tarrazú",
-            metodoExtraccion = "Espresso",
-            fechaHora = "Hace 3 días, 4:15 PM",
-            calificacion = 3
-        ),
-        ExtraccionRecienteMock(
-            id = "7",
-            nombreCafe = "Perú Organic",
-            metodoExtraccion = "Prensa Francesa",
-            fechaHora = "Hace 4 días, 7:30 AM",
-            calificacion = 4
-        )
-    )
 }

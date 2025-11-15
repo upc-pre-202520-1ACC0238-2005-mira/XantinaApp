@@ -3,7 +3,7 @@ package com.upc.xantina.shared.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Colores principales de Xantina basados en las imágenes
-val XantinaPrimary = Color(0xFF8B4513) // Marrón café principal
+val XantinaPrimary = Color(0xFF492C1E) // Marrón café principal
 val XantinaSecondary = Color(0xFFD2B48C) // Beige claro
 val XantinaBackground = Color(0xFFFAF7F0) // Fondo off-white
 val XantinaCardBackground = Color(0xFFFFFFFF) // Fondo blanco de las tarjetas

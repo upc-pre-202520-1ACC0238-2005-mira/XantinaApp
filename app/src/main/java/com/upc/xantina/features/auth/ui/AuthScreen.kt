@@ -11,9 +11,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.upc.xantina.shared.ui.components.*
-
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.upc.xantina.features.auth.presentation.state.AuthAction
+import com.upc.xantina.features.auth.presentation.viewmodel.AuthViewModel
 @Composable
 fun AuthScreen(
+    viewModel: AuthViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit = {},
     onRegisterSuccess: () -> Unit = {}
 ) {
@@ -21,11 +24,44 @@ fun AuthScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var localErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val isLoading = uiState.isLoading
+    val errorMessage = localErrorMessage ?: uiState.errorMessage
 
     fun isValidEmail(email: String): Boolean {
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    fun clearInputs() {
+        selectedTab = AuthTab.LOGIN
+        email = ""
+        password = ""
+        name = ""
+        localErrorMessage = null
+        viewModel.consumeAuthAction()
+    }
+
+    LaunchedEffect(uiState.isAuthenticated, uiState.lastAction) {
+        if (uiState.isAuthenticated) {
+            when (uiState.lastAction) {
+                AuthAction.LOGIN -> {
+                    onLoginSuccess()
+                    clearInputs()
+                }
+                AuthAction.REGISTER -> {
+                    onRegisterSuccess()
+                    clearInputs()
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun resetErrors() {
+        localErrorMessage = null
+        viewModel.clearError()
     }
 
     BackgroundGradient {
@@ -47,7 +83,7 @@ fun AuthScreen(
                 selectedTab = selectedTab,
                 onTabSelected = { tab ->
                     selectedTab = tab
-                    errorMessage = null
+                    resetErrors()
                     email = ""
                     password = ""
                     name = ""
@@ -59,21 +95,26 @@ fun AuthScreen(
                 AuthTab.LOGIN -> {
                     LoginForm(
                         email = email,
-                        onEmailChange = { email = it },
+                        onEmailChange = {
+                            email = it
+                            resetErrors()
+                        },
                         password = password,
-                        onPasswordChange = { password = it },
+                        onPasswordChange = {
+                            password = it
+                            resetErrors()
+                        },
                         onLoginClick = {
                             when {
                                 email.isBlank() || password.isBlank() -> {
-                                    errorMessage = "Por favor ingresa tu correo y contraseña."
+                                    localErrorMessage = "Por favor ingresa tu correo y contraseña."
                                 }
                                 !isValidEmail(email) -> {
-                                    errorMessage = "El correo ingresado no tiene un formato válido."
+                                    localErrorMessage = "El correo ingresado no tiene un formato válido."
                                 }
                                 else -> {
-                                    isLoading = true
-                                    errorMessage = null
-                                    onLoginSuccess()
+                                    resetErrors()
+                                    viewModel.login(email.trim(), password)
                                 }
                             }
                         },
@@ -85,23 +126,35 @@ fun AuthScreen(
                 AuthTab.REGISTER -> {
                     RegisterForm(
                         name = name,
-                        onNameChange = { name = it },
+                        onNameChange = {
+                            name = it
+                            resetErrors()
+                        },
                         email = email,
-                        onEmailChange = { email = it },
+                        onEmailChange = {
+                            email = it
+                            resetErrors()
+                        },
                         password = password,
-                        onPasswordChange = { password = it },
+                        onPasswordChange = {
+                            password = it
+                            resetErrors()
+                        },
                         onRegisterClick = {
                             when {
                                 name.isBlank() || email.isBlank() || password.isBlank() -> {
-                                    errorMessage = "Completa todos los campos antes de registrarte."
+                                    localErrorMessage = "Completa todos los campos antes de registrarte."
                                 }
                                 !isValidEmail(email) -> {
-                                    errorMessage = "El correo ingresado no tiene un formato válido."
+                                    localErrorMessage = "El correo ingresado no tiene un formato válido."
                                 }
                                 else -> {
-                                    isLoading = true
-                                    errorMessage = null
-                                    onRegisterSuccess()
+                                    resetErrors()
+                                    viewModel.register(
+                                        name = name.trim(),
+                                        email = email.trim(),
+                                        password = password
+                                    )
                                 }
                             }
                         },
