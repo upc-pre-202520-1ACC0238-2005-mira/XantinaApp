@@ -2,6 +2,8 @@ package com.upc.xantina.features.social.domain.repository
 
 import com.upc.xantina.features.social.domain.model.Comment
 import com.upc.xantina.features.social.domain.model.Post
+import com.upc.xantina.features.social.domain.model.UserSearchResult
+import com.upc.xantina.features.social.domain.model.PostExtractionData
 
 interface SocialRepository {
     
@@ -43,5 +45,17 @@ interface SocialRepository {
     suspend fun getCommentReplies(token: String, commentId: String): Result<List<Comment>>
     
     suspend fun deleteComment(token: String, commentId: String): Result<Unit>
+    
+    // Search & Follow
+    suspend fun searchUsers(token: String, query: String, limit: Int = 20): Result<List<UserSearchResult>>
+    
+    suspend fun toggleFollow(token: String, userId: String): Result<Boolean>
+    
+    suspend fun checkFollowing(token: String, userId: String): Result<Boolean>
+    
+    suspend fun getFollowingFeed(token: String, limit: Int = 20, offset: Int = 0): Result<List<Post>>
+    
+    // Extraction Data
+    suspend fun getPostExtractionData(token: String, postId: String): Result<PostExtractionData>
 }
 

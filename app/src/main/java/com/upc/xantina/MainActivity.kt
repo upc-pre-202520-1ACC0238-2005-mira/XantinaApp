@@ -14,6 +14,9 @@ import com.upc.xantina.features.auth.ui.AuthScreen
 import com.upc.xantina.features.conecta.ui.ConectaScreen
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.features.extraccion.domain.model.BolsaCafeInput
+import com.upc.xantina.features.extraccion.domain.model.Dificultad
+import com.upc.xantina.features.social.domain.model.PostExtractionData
+import kotlinx.coroutines.launch
 import com.upc.xantina.features.extraccion.ui.CrearMetodoScreen
 import com.upc.xantina.features.extraccion.ui.ExtraccionScreen
 import com.upc.xantina.features.extraccion.ui.NotasDeCataScreen
@@ -50,7 +53,32 @@ class MainActivity : ComponentActivity() {
                 val authUiState by authViewModel.uiState.collectAsState()
                 val extraccionViewModel: ExtraccionViewModel = hiltViewModel()
                 val extraccionUiState by extraccionViewModel.uiState.collectAsState()
-                val isLoggedIn = authUiState.isAuthenticated
+                val coroutineScope = rememberCoroutineScope()
+                
+                // Verificar si hay sesión guardada al iniciar
+                var isLoggedIn by remember { mutableStateOf(authUiState.isAuthenticated) }
+                
+                LaunchedEffect(Unit) {
+                    // Verificar si hay sesión persistida al iniciar la app
+                    coroutineScope.launch {
+                        val isAuthenticated = authRepository.isUserAuthenticated()
+                        if (isAuthenticated && !authUiState.isAuthenticated) {
+                            // Si hay sesión guardada pero el estado no está actualizado, actualizarlo
+                            val user = authRepository.getCurrentUser()
+                            if (user != null) {
+                                authViewModel.restoreSession(user)
+                                isLoggedIn = true
+                            }
+                        } else {
+                            isLoggedIn = authUiState.isAuthenticated
+                        }
+                    }
+                }
+                
+                LaunchedEffect(authUiState.isAuthenticated) {
+                    isLoggedIn = authUiState.isAuthenticated
+                }
+                
                 var selectedTab by remember { mutableStateOf(BottomNavTab.EXTRACCION) }
 
                 var showProfile by remember { mutableStateOf(false) }
@@ -247,7 +275,96 @@ class MainActivity : ComponentActivity() {
                             )
 
                             BottomNavTab.CONECTA -> ConectaScreen(
-                                authRepository = authRepository
+                                authRepository = authRepository,
+                                onFollowRecipe = { extractionData ->
+                                    // Usar los datos completos de la receta para cargar los valores automáticamente
+                                    
+                                    // Crear configuración con los valores base si están disponibles
+                                    val socialConfig = extractionData.configuracion
+                                    val configuracion: com.upc.xantina.features.extraccion.domain.model.ConfiguracionMetodo? = 
+                                        if (extractionData.gramosCafe != null && extractionData.mililitrosAgua != null) {
+                                            val base = com.upc.xantina.features.extraccion.domain.model.BaseParametros(
+                                                cafeG = extractionData.gramosCafe.toInt(),
+                                                aguaTotalMl = extractionData.mililitrosAgua.toInt()
+                                            )
+                                            
+                                            // Si hay configuración con pasos, convertirla
+                                            val pasos = socialConfig?.steps?.map { paso ->
+                                                com.upc.xantina.features.extraccion.domain.model.PasoExtraccion(
+                                                    step = paso.step,
+                                                    timeStart = paso.timeStart,
+                                                    timeEnd = paso.timeEnd,
+                                                    action = paso.action,
+                                                    waterMl = paso.waterMl?.toInt() ?: 0,
+                                                    calculation = paso.calculation,
+                                                    requiereAccionManual = false
+                                                )
+                                            } ?: emptyList()
+                                            
+                                            com.upc.xantina.features.extraccion.domain.model.ConfiguracionMetodo(
+                                                grind = socialConfig?.grind ?: "medio",
+                                                temperature = socialConfig?.temperature ?: extractionData.temperaturaAgua?.toString() ?: "92",
+                                                base = base,
+                                                totalTimeSeconds = extractionData.tiempoExtraccion ?: socialConfig?.totalTimeSeconds ?: 120,
+                                                steps = pasos
+                                            )
+                                        } else {
+                                            socialConfig?.let { config ->
+                                                val pasos = config.steps?.map { paso ->
+                                                    com.upc.xantina.features.extraccion.domain.model.PasoExtraccion(
+                                                        step = paso.step,
+                                                        timeStart = paso.timeStart,
+                                                        timeEnd = paso.timeEnd,
+                                                        action = paso.action,
+                                                        waterMl = paso.waterMl?.toInt() ?: 0,
+                                                        calculation = paso.calculation,
+                                                        requiereAccionManual = false
+                                                    )
+                                                } ?: emptyList()
+                                                
+                                                com.upc.xantina.features.extraccion.domain.model.ConfiguracionMetodo(
+                                                    grind = config.grind ?: "medio",
+                                                    temperature = config.temperature ?: extractionData.temperaturaAgua?.toString() ?: "92",
+                                                    base = config.base?.let { baseConfig ->
+                                                        com.upc.xantina.features.extraccion.domain.model.BaseParametros(
+                                                            cafeG = baseConfig.cafeG?.toInt() ?: 15,
+                                                            aguaTotalMl = baseConfig.aguaTotalMl?.toInt() ?: 225
+                                                        )
+                                                    } ?: com.upc.xantina.features.extraccion.domain.model.BaseParametros(15, 225),
+                                                    totalTimeSeconds = config.totalTimeSeconds ?: extractionData.tiempoExtraccion ?: 120,
+                                                    steps = pasos
+                                                )
+                                            }
+                                        }
+                                    
+                                    val metodoTemporal = MetodoExtraccion(
+                                        id = extractionData.recetaId ?: "",
+                                        nombre = extractionData.nombre ?: "Receta seguida",
+                                        descripcion = extractionData.notas ?: "Receta de la comunidad",
+                                        tiempoPreparacion = extractionData.tiempoExtraccion?.let { "$it s" } ?: "—",
+                                        icono = extractionData.metodo ?: "coffee",
+                                        dificultad = Dificultad.INTERMEDIO,
+                                        temperatura = extractionData.temperaturaAgua,
+                                        ratio = extractionData.ratio,
+                                        creadorId = "", // No tenemos el ID del creador en PostExtractionData
+                                        esPublica = true,
+                                        configuracion = configuracion
+                                    )
+                                    selectedMetodo = metodoTemporal
+                                    bolsaSeleccionadaId = null
+                                    
+                                    // Convertir pasos para la UI usando el mapper
+                                    if (configuracion != null && configuracion.steps.isNotEmpty()) {
+                                        pasosExtraccion = configuracion.steps.toUiList()
+                                    } else {
+                                        pasosExtraccion = defaultPasosExtraccion()
+                                    }
+                                    
+                                    extraccionViewModel.refrescarBolsas()
+                                    
+                                    // Navegar a la pantalla de parámetros con los valores precargados
+                                    selectedTab = BottomNavTab.EXTRACCION
+                                }
                             )
 
                             BottomNavTab.PROFILE -> ProfileScreen(

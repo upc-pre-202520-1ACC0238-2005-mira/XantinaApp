@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -21,16 +22,28 @@ android {
         buildConfigField(
             "String",
             "BASE_URL",
-            "\"http://10.0.2.2:3000/api/\""
+            "\"http://34.59.110.88:8080/api/\""
         )
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"http://34.59.110.88:8080/api/\""
+            )
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+            )
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"http://34.59.110.88:8080/api/\""
             )
         }
     }

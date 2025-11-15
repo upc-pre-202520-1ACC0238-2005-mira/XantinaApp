@@ -2,6 +2,8 @@ package com.upc.xantina.features.social.infrastructure.repository
 
 import com.upc.xantina.features.social.domain.model.Comment
 import com.upc.xantina.features.social.domain.model.Post
+import com.upc.xantina.features.social.domain.model.UserSearchResult
+import com.upc.xantina.features.social.domain.model.PostExtractionData
 import com.upc.xantina.features.social.domain.repository.SocialRepository
 import com.upc.xantina.features.social.infrastructure.api.SocialApiService
 import com.upc.xantina.features.social.infrastructure.api.dto.CreateCommentRequestDto
@@ -152,6 +154,65 @@ class SocialRepositoryImpl @Inject constructor(
             try {
                 apiService.deleteComment("Bearer $token", commentId)
                 Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    
+    override suspend fun searchUsers(token: String, query: String, limit: Int): Result<List<UserSearchResult>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.searchUsers("Bearer $token", query, limit)
+                val users = response.map { it.toDomain() }
+                Result.success(users)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    
+    override suspend fun toggleFollow(token: String, userId: String): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.toggleFollow("Bearer $token", userId)
+                Result.success(response.following)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    
+    override suspend fun checkFollowing(token: String, userId: String): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.checkFollowing("Bearer $token", userId)
+                Result.success(response.following)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    
+    override suspend fun getFollowingFeed(token: String, limit: Int, offset: Int): Result<List<Post>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getFollowingFeed("Bearer $token", limit, offset)
+                val postsWithLikes = response.map { postDto ->
+                    try {
+                        val liked = apiService.checkUserLiked("Bearer $token", postDto.id)
+                        postDto.toDomain(liked.liked)
+                    } catch (e: Exception) {
+                        postDto.toDomain(false)
+                    }
+                }
+                Result.success(postsWithLikes)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    
+    override suspend fun getPostExtractionData(token: String, postId: String): Result<PostExtractionData> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getPostExtractionData("Bearer $token", postId)
+                Result.success(response.toDomain())
             } catch (e: Exception) {
                 Result.failure(e)
             }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,9 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.upc.xantina.shared.ui.theme.XantinaCardBackground
 import com.upc.xantina.shared.ui.theme.XantinaTextPrimary
 import com.upc.xantina.shared.ui.theme.XantinaTextSecondary
@@ -57,17 +63,36 @@ fun MethodCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.weight(1f)
         ) {
-            // Icono del método
+            // Icono del método (imagen real)
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(56.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(com.upc.xantina.shared.ui.theme.XantinaPrimary.copy(alpha = 0.1f)),
+                    .background(com.upc.xantina.shared.ui.theme.XantinaPrimary.copy(alpha = 0.05f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = getMethodIcon(icono),
-                    fontSize = 24.sp
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(getMethodImageUrl(icono))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = nombre,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit,
+                    loading = {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = com.upc.xantina.shared.ui.theme.XantinaPrimary
+                        )
+                    },
+                    error = {
+                        Text(
+                            text = getMethodEmoji(icono),
+                            fontSize = 32.sp
+                        )
+                    }
                 )
             }
 
@@ -110,17 +135,27 @@ fun MethodCard(
 }
 
 /**
- * Obtiene el emoji correspondiente al método de extracción
+ * Obtiene la URL de la imagen real del método de extracción
  */
-private fun getMethodIcon(icono: String): String {
+private fun getMethodImageUrl(icono: String): String {
     return when (icono.lowercase()) {
-        "prensa", "french press" -> "🫖"
-        "v60", "pour over" -> "⏳"
-        "aeropress" -> "🚀"
-        "espresso" -> "☕"
-        "chemex" -> "🧪"
-        "moka" -> "☕"
-        "cold brew" -> "❄️"
+        "aeropress" -> "https://exploracafe.pe/cdn/shop/files/1.webp?v=1755203368"
+        "chemex" -> "https://alboradacafe.pe/cdn/shop/products/chemex-classic-8cup-detail_1.png?v=1659342030"
+        "prensa", "prensa francesa", "prensa_francesa", "french press" -> "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWx02O0Ks_lD9H1OSLbPorgFhJNzcaoqAmOA&s"
+        "v60", "pour over" -> "https://alboradacafe.pe/cdn/shop/products/2141018.jpg?v=1659338700"
+        else -> "https://alboradacafe.pe/cdn/shop/products/2141018.jpg?v=1659338700" // Default V60
+    }
+}
+
+/**
+ * Obtiene el emoji de respaldo para el método
+ */
+private fun getMethodEmoji(icono: String): String {
+    return when (icono.lowercase()) {
+        "aeropress" -> "☕"
+        "chemex" -> "⚗️"
+        "prensa", "prensa francesa", "prensa_francesa", "french press" -> "🫖"
+        "v60", "pour over" -> "☕"
         else -> "☕"
     }
 }

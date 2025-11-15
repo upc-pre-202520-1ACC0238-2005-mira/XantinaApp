@@ -276,17 +276,17 @@ fun PasoExtraccionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
                 // Botón Salir
-                OutlinedButton(
-                    onClick = onSalirProceso,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
+            OutlinedButton(
+                onClick = onSalirProceso,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
                     ),
                     shape = RoundedCornerShape(12.dp)
-                ) {
+            ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Salir",
@@ -294,36 +294,36 @@ fun PasoExtraccionScreen(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text("Salir", fontSize = 14.sp)
-                }
+            }
 
                 // Controles de navegación
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(
-                        onClick = onPasoAnterior,
-                        enabled = puedeRetroceder
-                    ) {
+                    onClick = onPasoAnterior,
+                    enabled = puedeRetroceder
+                ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Anterior",
                             tint = if (puedeRetroceder) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
-                    }
+                }
                     IconButton(
-                        onClick = {
-                            tiempoRestante = duracion
-                            isPaused = false
-                            onReiniciarPaso()
-                        }
-                    ) {
+                    onClick = {
+                        tiempoRestante = duracion
+                        isPaused = false
+                        onReiniciarPaso()
+                    }
+                ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Reiniciar"
                         )
-                    }
-                    OutlinedButton(
+                }
+                OutlinedButton(
                         onClick = { isPaused = !isPaused },
                         shape = RoundedCornerShape(8.dp)
-                    ) {
+                ) {
                         Icon(
                             imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Close,
                             contentDescription = if (isPaused) "Reanudar" else "Pausar",
@@ -334,9 +334,9 @@ fun PasoExtraccionScreen(
                             text = if (isPaused) "Reanudar" else "Pausar",
                             fontSize = 12.sp
                         )
-                    }
                 }
             }
+        }
         }
 
         Spacer(Modifier.height(20.dp))
@@ -604,7 +604,7 @@ fun PasoExtraccionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
-            ) {
+        ) {
                 Text(
                     text = "Continuar",
                     fontSize = 19.sp,
@@ -612,7 +612,7 @@ fun PasoExtraccionScreen(
                     color = Color.White,
                     letterSpacing = 0.5.sp
                 )
-            }
+        }
         }
         
         Spacer(Modifier.height(16.dp))

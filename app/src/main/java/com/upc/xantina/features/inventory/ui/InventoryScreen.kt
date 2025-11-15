@@ -268,7 +268,7 @@ private fun BolsaCard(bolsa: BolsaCafe) {
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Row(
+            Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -288,18 +288,18 @@ private fun BolsaCard(bolsa: BolsaCafe) {
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
+                Text(
                             text = "Restante",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
-                        )
-                        Text(
+                )
+                Text(
                             text = "${bolsa.pesoRestante} g",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
-                            color = XantinaSecondary
-                        )
+                    color = XantinaSecondary
+                )
                     }
                 }
             }

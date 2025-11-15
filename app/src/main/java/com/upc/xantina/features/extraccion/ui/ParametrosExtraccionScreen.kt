@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -28,8 +29,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,9 +44,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Arrangement
 import com.upc.xantina.features.extraccion.domain.model.BolsaCafe
 import com.upc.xantina.features.extraccion.domain.model.MetodoExtraccion
 import com.upc.xantina.shared.ui.theme.XantinaPrimary
@@ -62,24 +67,61 @@ fun ParametrosExtraccionScreen(
     var cafeSeleccionado by remember { mutableStateOf<BolsaCafe?>(null) }
     var mostrarLista by remember { mutableStateOf(false) }
 
-    val ratioRecomendado = remember(metodo.ratio) {
+    // Extraer el ratio inicial del método
+    val ratioInicial = remember(metodo.ratio) {
         metodo.ratio
             ?.substringAfter(":")
             ?.toDoubleOrNull()
-            ?.toInt()
-            ?.coerceAtLeast(1) ?: 15
+            ?: 15.0
     }
 
-    var cantidadCafe by remember { mutableStateOf(15) }
-    var cantidadAgua by remember { mutableStateOf(15 * ratioRecomendado) }
+    // Usar valores del método si están disponibles en la configuración
+    val valoresIniciales = remember(metodo.configuracion) {
+        metodo.configuracion?.base?.let {
+            Pair(it.cafeG.toDouble(), it.aguaTotalMl.toDouble())
+        } ?: Pair(15.0, 15.0 * ratioInicial)
+    }
+    
+    var cantidadCafe by remember { mutableStateOf(valoresIniciales.first) }
+    var cantidadAgua by remember { mutableStateOf(valoresIniciales.second) }
     var ratioBloqueado by remember { mutableStateOf(true) }
+    var ratioActual by remember { mutableStateOf(ratioInicial) }
+    
+    // Variable para evitar loops infinitos
+    var isUpdatingFromRatio by remember { mutableStateOf(false) }
 
     val tiempoEstimadoMinutos = 2.5
 
-    // Recalcular agua basado en ratio
-    LaunchedEffect(cantidadCafe, ratioRecomendado, ratioBloqueado) {
-        if (ratioBloqueado) {
-            cantidadAgua = cantidadCafe * ratioRecomendado
+    // Función para actualizar el ratio calculado
+    fun actualizarRatioCalculado() {
+        if (!ratioBloqueado && cantidadCafe > 0) {
+            ratioActual = cantidadAgua / cantidadCafe
+        }
+    }
+
+    // Función para actualizar agua basado en café (cuando ratio está bloqueado)
+    fun actualizarAguaDesdeCafe(nuevoCafe: Double) {
+        if (ratioBloqueado && !isUpdatingFromRatio) {
+            isUpdatingFromRatio = true
+            cantidadCafe = nuevoCafe
+            cantidadAgua = nuevoCafe * ratioActual
+            isUpdatingFromRatio = false
+        } else if (!ratioBloqueado) {
+            cantidadCafe = nuevoCafe
+            actualizarRatioCalculado()
+        }
+    }
+
+    // Función para actualizar café basado en agua (cuando ratio está bloqueado)
+    fun actualizarCafeDesdeAgua(nuevaAgua: Double) {
+        if (ratioBloqueado && !isUpdatingFromRatio && ratioActual > 0) {
+            isUpdatingFromRatio = true
+            cantidadAgua = nuevaAgua
+            cantidadCafe = nuevaAgua / ratioActual
+            isUpdatingFromRatio = false
+        } else if (!ratioBloqueado) {
+            cantidadAgua = nuevaAgua
+            actualizarRatioCalculado()
         }
     }
 
@@ -117,7 +159,7 @@ fun ParametrosExtraccionScreen(
                 text = "Regresar",
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground
-            )
+        )
         }
 
         // Título
@@ -161,13 +203,18 @@ fun ParametrosExtraccionScreen(
         }
         Spacer(Modifier.height(20.dp))
 
-        // Card de ratio
-        val ratioTexto = metodo.ratio ?: "1:$ratioRecomendado"
+        // Card de ratio con cálculo automático
+        val ratioTextoMostrar = if (ratioBloqueado) {
+            "1:${String.format("%.1f", ratioActual)}"
+        } else {
+            "1:${String.format("%.1f", ratioActual)}"
+        }
+        
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (ratioBloqueado) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
             )
         ) {
             Row(
@@ -178,33 +225,43 @@ fun ParametrosExtraccionScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Ratio sugerido",
+                        if (ratioBloqueado) "Ratio bloqueado" else "Ratio calculado",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
+                        color = if (ratioBloqueado) Color(0xFFC62828) else Color(0xFF2E7D32),
+                        fontWeight = FontWeight.SemiBold
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        ratioTexto,
-                        fontSize = 22.sp,
+                        ratioTextoMostrar,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = if (ratioBloqueado) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        if (ratioBloqueado) "Los valores se calcularán automáticamente" else "El ratio se ajusta según tus valores",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 OutlinedButton(
                     onClick = { ratioBloqueado = !ratioBloqueado },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (ratioBloqueado) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = if (ratioBloqueado) "Bloqueado" else "Editable",
-                        modifier = Modifier.size(16.dp),
-                        tint = if (ratioBloqueado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        contentDescription = if (ratioBloqueado) "Bloqueado" else "Desbloqueado",
+                        modifier = Modifier.size(18.dp),
+                        tint = if (ratioBloqueado) Color(0xFFD32F2F) else Color(0xFF388E3C)
                     )
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        text = if (ratioBloqueado) "Bloqueado" else "Editable",
-                        fontSize = 12.sp
+                        text = if (ratioBloqueado) "Bloqueado" else "Libre",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -350,7 +407,7 @@ fun ParametrosExtraccionScreen(
             Spacer(Modifier.height(24.dp))
         }
 
-        // Card de cantidades
+        // Card de cantidades con cálculo automático
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -360,55 +417,133 @@ fun ParametrosExtraccionScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // ---- Cantidad café ----
+        // ---- Cantidad café ----
                 Text(
-                    "Cantidad de café (g):",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
+                    "Cantidad de café",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(Modifier.height(8.dp))
-                Slider(
-                    value = cantidadCafe.toFloat(),
-                    onValueChange = { cantidadCafe = it.toInt() },
-                    valueRange = 5f..30f
-                )
-                Text(
-                    "$cantidadCafe g",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = XantinaPrimary
-                )
-
-                Spacer(Modifier.height(20.dp))
-
-                // ---- Cantidad agua ----
-                Text(
-                    "Cantidad de agua (ml):",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = cantidadAgua.toString(),
-                    onValueChange = { value ->
-                        val newValue = value.toIntOrNull()
-                        if (newValue != null && newValue > 0) {
-                            cantidadAgua = newValue
-                        }
-                    },
+                Spacer(Modifier.height(12.dp))
+                
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = String.format("%.1f", cantidadCafe),
+                        onValueChange = { value ->
+                            value.toDoubleOrNull()?.let { nuevoCafe ->
+                                if (nuevoCafe > 0) {
+                                    actualizarAguaDesdeCafe(nuevoCafe)
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        suffix = { Text("g", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF6F4E37),
+                            focusedLabelColor = Color(0xFF6F4E37)
+                        )
+                    )
+                    
+                    // Slider para ajuste rápido
+        Slider(
+            value = cantidadCafe.toFloat(),
+                        onValueChange = { actualizarAguaDesdeCafe(it.toDouble()) },
+                        valueRange = 5f..50f,
+                        modifier = Modifier.weight(1.5f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF6F4E37),
+                            activeTrackColor = Color(0xFF6F4E37)
+                        )
+                    )
+                }
 
-                Spacer(Modifier.height(16.dp))
-                val ratioTextoActual = metodo.ratio ?: "1:$ratioRecomendado"
+                Spacer(Modifier.height(24.dp))
+
+        // ---- Cantidad agua ----
                 Text(
-                    "Ratio recomendado: $cantidadCafe g × $ratioTextoActual ≈ $cantidadAgua ml",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Cantidad de agua",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+        OutlinedTextField(
+                        value = String.format("%.1f", cantidadAgua),
+            onValueChange = { value ->
+                            value.toDoubleOrNull()?.let { nuevaAgua ->
+                                if (nuevaAgua > 0) {
+                                    actualizarCafeDesdeAgua(nuevaAgua)
+                                }
+                }
+            },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        suffix = { Text("ml", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF6F4E37),
+                            focusedLabelColor = Color(0xFF6F4E37)
+                        )
+                    )
+                    
+                    // Slider para ajuste rápido
+                    Slider(
+                        value = cantidadAgua.toFloat(),
+                        onValueChange = { actualizarCafeDesdeAgua(it.toDouble()) },
+                        valueRange = 50f..1000f,
+                        modifier = Modifier.weight(1.5f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF6F4E37),
+                            activeTrackColor = Color(0xFF6F4E37)
+                        )
+                    )
+                }
+
+        Spacer(Modifier.height(16.dp))
+
+                // Indicador de cálculo
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFF8E1)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color(0xFFF57C00),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (ratioBloqueado) {
+                                "Ratio bloqueado: Los valores se calculan automáticamente"
+                            } else {
+                                "Ratio libre: Ajusta los valores manualmente"
+                            },
+                            fontSize = 12.sp,
+                            color = Color(0xFFE65100)
+                        )
+                    }
+                }
             }
         }
 
@@ -457,7 +592,7 @@ fun ParametrosExtraccionScreen(
         Button(
             onClick = {
                 cafeSeleccionado?.let { bolsa ->
-                    onStart(bolsa.id, cantidadCafe)
+                    onStart(bolsa.id, cantidadCafe.roundToInt())
                 }
             },
             modifier = Modifier

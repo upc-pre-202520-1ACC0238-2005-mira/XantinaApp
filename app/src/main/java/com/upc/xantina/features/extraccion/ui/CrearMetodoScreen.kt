@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.upc.xantina.features.extraccion.ui
 
 import androidx.activity.compose.BackHandler
@@ -34,6 +36,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -74,15 +78,20 @@ fun CrearMetodoScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    val uiStateMetodos = viewModel.uiState.collectAsState().value.metodos
+    
     var nombre by rememberSaveable { mutableStateOf("") }
-    var metodo by rememberSaveable { mutableStateOf("") }
+    var metodoSeleccionado by rememberSaveable { mutableStateOf("") }
+    var etiqueta by rememberSaveable { mutableStateOf("") }
     var descripcion by rememberSaveable { mutableStateOf("") }
     var ratio by rememberSaveable { mutableStateOf("1:15") }
-    var gramosCafe by rememberSaveable { mutableStateOf("") }
-    var mililitrosAgua by rememberSaveable { mutableStateOf("") }
+    var gramosCafe by rememberSaveable { mutableStateOf("15.0") }
+    var mililitrosAgua by rememberSaveable { mutableStateOf("225.0") }
     var temperaturaAgua by rememberSaveable { mutableStateOf("") }
     var tiempoExtraccion by rememberSaveable { mutableStateOf("") }
     var calificacion by rememberSaveable { mutableStateOf("5") }
+    var ratioBloqueado by rememberSaveable { mutableStateOf(true) }
+    var metodoMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler(enabled = true) {
         onBack()
@@ -97,6 +106,13 @@ fun CrearMetodoScreen(
         val message = uiState.successMessage ?: return@LaunchedEffect
         if (message.isNotBlank()) {
             onCreated()
+        }
+    }
+    
+    // Cargar métodos disponibles al abrir la pantalla
+    LaunchedEffect(Unit) {
+        if (userId != null) {
+            viewModel.cargarDatos(userId)
         }
     }
 
@@ -132,8 +148,13 @@ fun CrearMetodoScreen(
             padding = padding,
             nombre = nombre,
             onNombreChange = { nombre = it },
-            metodo = metodo,
-            onMetodoChange = { metodo = it },
+            metodoSeleccionado = metodoSeleccionado,
+            onMetodoSeleccionadoChange = { metodoSeleccionado = it },
+            metodosDisponibles = uiStateMetodos.map { it.nombre },
+            metodoMenuExpanded = metodoMenuExpanded,
+            onMetodoMenuExpandedChange = { metodoMenuExpanded = it },
+            etiqueta = etiqueta,
+            onEtiquetaChange = { etiqueta = it },
             descripcion = descripcion,
             onDescripcionChange = { descripcion = it },
             ratio = ratio,
@@ -148,6 +169,8 @@ fun CrearMetodoScreen(
             onTiempoExtraccionChange = { tiempoExtraccion = it },
             calificacion = calificacion,
             onCalificacionChange = { calificacion = it },
+            ratioBloqueado = ratioBloqueado,
+            onRatioBloqueadoChange = { ratioBloqueado = it },
             isSaving = uiState.isSaving,
             isValid = nombre.isNotBlank() && userId != null,
             onSubmit = {
@@ -159,7 +182,8 @@ fun CrearMetodoScreen(
                 }
                 val datos = MetodoCreacionDatos(
                     nombre = nombre.trim(),
-                    metodo = metodo.trim().ifBlank { nombre.trim() },
+                    metodo = metodoSeleccionado.trim().ifBlank { nombre.trim() },
+                    etiqueta = etiqueta.trim().ifBlank { null },
                     ratio = ratio.trim().ifBlank { "1:15" },
                     descripcion = descripcion.trim().ifBlank { null },
                     gramosCafe = gramosCafe.toDoubleOrNull(),
@@ -179,8 +203,13 @@ private fun CrearMetodoForm(
     padding: PaddingValues,
     nombre: String,
     onNombreChange: (String) -> Unit,
-    metodo: String,
-    onMetodoChange: (String) -> Unit,
+    metodoSeleccionado: String,
+    onMetodoSeleccionadoChange: (String) -> Unit,
+    metodosDisponibles: List<String>,
+    metodoMenuExpanded: Boolean,
+    onMetodoMenuExpandedChange: (Boolean) -> Unit,
+    etiqueta: String,
+    onEtiquetaChange: (String) -> Unit,
     descripcion: String,
     onDescripcionChange: (String) -> Unit,
     ratio: String,
@@ -195,10 +224,51 @@ private fun CrearMetodoForm(
     onTiempoExtraccionChange: (String) -> Unit,
     calificacion: String,
     onCalificacionChange: (String) -> Unit,
+    ratioBloqueado: Boolean,
+    onRatioBloqueadoChange: (Boolean) -> Unit,
     isSaving: Boolean,
     isValid: Boolean,
     onSubmit: () -> Unit
 ) {
+    // Extraer el ratio actual del string
+    val ratioActual = remember(ratio) {
+        ratio.substringAfter(":").toDoubleOrNull() ?: 15.0
+    }
+    
+    // Funciones para cálculo automático del ratio
+    fun actualizarAguaDesdeCafe(nuevoCafe: String) {
+        val cafe = nuevoCafe.toDoubleOrNull() ?: return
+        onGramosCafeChange(nuevoCafe)
+        
+        if (ratioBloqueado && cafe > 0) {
+            val nuevaAgua = cafe * ratioActual
+            onMililitrosAguaChange(String.format("%.1f", nuevaAgua))
+        } else if (!ratioBloqueado && cafe > 0) {
+            // Calcular nuevo ratio
+            val agua = mililitrosAgua.toDoubleOrNull() ?: 0.0
+            if (agua > 0) {
+                val nuevoRatio = agua / cafe
+                onRatioChange("1:${String.format("%.1f", nuevoRatio)}")
+            }
+        }
+    }
+    
+    fun actualizarCafeDesdeAgua(nuevaAgua: String) {
+        val agua = nuevaAgua.toDoubleOrNull() ?: return
+        onMililitrosAguaChange(nuevaAgua)
+        
+        if (ratioBloqueado && agua > 0 && ratioActual > 0) {
+            val nuevoCafe = agua / ratioActual
+            onGramosCafeChange(String.format("%.1f", nuevoCafe))
+        } else if (!ratioBloqueado && agua > 0) {
+            // Calcular nuevo ratio
+            val cafe = gramosCafe.toDoubleOrNull() ?: 0.0
+            if (cafe > 0) {
+                val nuevoRatio = agua / cafe
+                onRatioChange("1:${String.format("%.1f", nuevoRatio)}")
+            }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -238,15 +308,74 @@ private fun CrearMetodoForm(
             StyledTextField(
                 value = nombre,
                 onValueChange = onNombreChange,
-                label = "Nombre del método",
+                label = "Nombre de receta",
                 placeholder = "Ej: Mi Aeropress Favorito",
                 isRequired = true
             )
 
+            // Menú desplegable para Método
+            Column {
+                Text(
+                    text = "Método de la receta *",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF2C1810),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+                ExposedDropdownMenuBox(
+                    expanded = metodoMenuExpanded,
+                    onExpandedChange = onMetodoMenuExpandedChange
+                ) {
+                    OutlinedTextField(
+                        value = metodoSeleccionado,
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = { 
+                            Text(
+                                text = "Selecciona un método",
+                                color = Color(0xFFAAAAAA),
+                                fontSize = 15.sp
+                            ) 
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = metodoMenuExpanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF4B2E2E),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedContainerColor = Color(0xFFFAFAFA),
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 15.sp,
+                            color = Color(0xFF2C1810)
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = metodoMenuExpanded,
+                        onDismissRequest = { onMetodoMenuExpandedChange(false) }
+                    ) {
+                        metodosDisponibles.forEach { metodo ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(metodo) },
+                                onClick = {
+                                    onMetodoSeleccionadoChange(metodo)
+                                    onMetodoMenuExpandedChange(false)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             StyledTextField(
-                value = metodo,
-                onValueChange = onMetodoChange,
-                label = "Etiqueta o familia",
+                value = etiqueta,
+                onValueChange = onEtiquetaChange,
+                label = "Etiqueta",
                 placeholder = "Ej: Aeropress, V60, French Press"
             )
 
@@ -264,35 +393,90 @@ private fun CrearMetodoForm(
             title = "Parámetros de Extracción",
             icon = Icons.Filled.Settings
         ) {
+            // Card de ratio con bloqueo
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (ratioBloqueado) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            if (ratioBloqueado) "Ratio bloqueado" else "Ratio calculado",
+                            fontSize = 13.sp,
+                            color = if (ratioBloqueado) Color(0xFFC62828) else Color(0xFF2E7D32),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            ratio,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (ratioBloqueado) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            if (ratioBloqueado) "Los valores se calcularán automáticamente" else "El ratio se ajusta según tus valores",
+                            fontSize = 11.sp,
+                            color = Color(0xFF666666)
+                        )
+                    }
+                    Button(
+                        onClick = { onRatioBloqueadoChange(!ratioBloqueado) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (ratioBloqueado) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = if (ratioBloqueado) "Bloqueado" else "Desbloqueado",
+                            modifier = Modifier.size(18.dp),
+                            tint = Color.White
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = if (ratioBloqueado) "Bloqueado" else "Libre",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StyledTextField(
                     value = gramosCafe,
-                    onValueChange = onGramosCafeChange,
+                    onValueChange = { actualizarAguaDesdeCafe(it) },
                     label = "Gramos de café",
                     placeholder = "15",
-                    keyboardType = KeyboardType.Number,
+                    keyboardType = KeyboardType.Decimal,
                     modifier = Modifier.weight(1f)
                 )
 
                 StyledTextField(
                     value = mililitrosAgua,
-                    onValueChange = onMililitrosAguaChange,
+                    onValueChange = { actualizarCafeDesdeAgua(it) },
                     label = "Mililitros de agua",
                     placeholder = "250",
-                    keyboardType = KeyboardType.Number,
+                    keyboardType = KeyboardType.Decimal,
                     modifier = Modifier.weight(1f)
                 )
             }
-
-            StyledTextField(
-                value = ratio,
-                onValueChange = onRatioChange,
-                label = "Ratio (café:agua)",
-                placeholder = "1:15"
-            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -316,6 +500,15 @@ private fun CrearMetodoForm(
                     modifier = Modifier.weight(1f)
                 )
             }
+            
+            StyledTextField(
+                value = calificacion,
+                onValueChange = onCalificacionChange,
+                label = "Calificación",
+                placeholder = "1-5",
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         // Botón de guardar

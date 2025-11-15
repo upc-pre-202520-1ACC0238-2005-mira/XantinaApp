@@ -25,6 +25,13 @@ interface ExtraccionRepository {
     suspend fun getMetodoExtraccionById(id: String): Result<MetodoExtraccion?>
     
     /**
+     * Obtiene una extracción/receta por ID
+     * @param id ID de la extracción
+     * @return Result<Extraccion?> la extracción encontrada o null
+     */
+    suspend fun getExtraccionById(id: String): Result<Extraccion?>
+    
+    /**
      * Obtiene las extracciones recientes del usuario
      * @param usuarioId ID del usuario
      * @param limite Número máximo de extracciones a retornar

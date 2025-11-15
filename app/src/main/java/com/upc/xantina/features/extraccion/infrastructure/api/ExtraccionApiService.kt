@@ -27,6 +27,11 @@ interface ExtraccionApiService {
         @Query("metodo") metodo: String? = null
     ): List<ExtraccionDto>
 
+    @GET("extraccion/{id}")
+    suspend fun getExtraccionById(
+        @Path("id") id: String
+    ): ExtraccionDto
+
     @POST("extraccion")
     suspend fun crearExtraccion(
         @Body request: CreateExtraccionRequest

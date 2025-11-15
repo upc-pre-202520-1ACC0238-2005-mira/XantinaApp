@@ -2,6 +2,7 @@ package com.upc.xantina.features.auth.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.upc.xantina.core.domain.model.User
 import com.upc.xantina.core.domain.repository.AuthRepository
 import com.upc.xantina.features.auth.presentation.state.AuthAction
 import com.upc.xantina.features.auth.presentation.state.AuthUiState
@@ -82,6 +83,17 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.logout()
             _uiState.value = AuthUiState()
+        }
+    }
+
+    fun restoreSession(user: User) {
+        _uiState.update {
+            it.copy(
+                isAuthenticated = true,
+                user = user,
+                isLoading = false,
+                errorMessage = null
+            )
         }
     }
 

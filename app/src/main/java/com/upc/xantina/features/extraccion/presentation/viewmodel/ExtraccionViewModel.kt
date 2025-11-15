@@ -29,7 +29,8 @@ class ExtraccionViewModel @Inject constructor(
     private val guardarExtraccionUseCase: GuardarExtraccionUseCase,
     private val getBolsasCafeUseCase: GetBolsasCafeUseCase,
     private val consumirBolsaCafeUseCase: ConsumirBolsaCafeUseCase,
-    private val createBolsaCafeUseCase: CreateBolsaCafeUseCase
+    private val createBolsaCafeUseCase: CreateBolsaCafeUseCase,
+    private val extraccionRepository: com.upc.xantina.features.extraccion.domain.repository.ExtraccionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExtraccionUiState(isLoading = true))
@@ -220,6 +221,10 @@ class ExtraccionViewModel @Inject constructor(
         }
     }
 
+    suspend fun cargarRecetaPorId(recetaId: String): Result<Extraccion?> {
+        return extraccionRepository.getExtraccionById(recetaId)
+    }
+
     private fun aplicarFiltro(
         metodos: List<MetodoExtraccion>,
         filtro: MetodoFiltro,
@@ -241,6 +246,7 @@ class ExtraccionViewModel @Inject constructor(
 data class MetodoCreacionDatos(
     val nombre: String,
     val metodo: String,
+    val etiqueta: String? = null,
     val ratio: String,
     val descripcion: String?,
     val gramosCafe: Double?,

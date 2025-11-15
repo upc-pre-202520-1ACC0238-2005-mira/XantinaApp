@@ -47,6 +47,14 @@ class ExtraccionRepositoryImpl @Inject constructor(
             }.mapError()
         }
 
+    override suspend fun getExtraccionById(id: String): Result<Extraccion?> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val extraccionDto = remoteDataSource.obtenerExtraccionPorId(id)
+                ExtraccionMapper.toDomain(extraccionDto)
+            }.mapError()
+        }
+
     override suspend fun getExtraccionesRecientes(
         usuarioId: String,
         limite: Int

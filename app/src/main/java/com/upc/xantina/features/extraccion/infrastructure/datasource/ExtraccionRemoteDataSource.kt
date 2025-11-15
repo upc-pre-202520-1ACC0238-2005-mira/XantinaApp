@@ -28,6 +28,10 @@ class ExtraccionRemoteDataSource @Inject constructor(
         )
     }
 
+    suspend fun obtenerExtraccionPorId(id: String): ExtraccionDto {
+        return apiService.getExtraccionById(id)
+    }
+
     suspend fun crearExtraccion(request: CreateExtraccionRequest): ExtraccionDto {
         return apiService.crearExtraccion(request)
     }

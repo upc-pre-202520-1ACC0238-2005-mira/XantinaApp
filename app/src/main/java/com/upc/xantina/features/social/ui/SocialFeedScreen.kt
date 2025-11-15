@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.upc.xantina.core.domain.repository.AuthRepository
 import com.upc.xantina.features.social.domain.model.Post
 import com.upc.xantina.features.social.domain.model.Comment
+import com.upc.xantina.features.social.domain.model.PostExtractionData
 import com.upc.xantina.features.social.presentation.state.CommentsUiState
 import com.upc.xantina.features.social.presentation.state.FeedUiState
 import com.upc.xantina.features.social.presentation.state.RepliesUiState
@@ -36,16 +37,23 @@ import kotlinx.coroutines.launch
 @Composable
 fun SocialFeedScreen(
     authRepository: AuthRepository,
-    viewModel: SocialViewModel = hiltViewModel()
+    viewModel: SocialViewModel = hiltViewModel(),
+    onFollowRecipe: (PostExtractionData) -> Unit = {},
+    useFollowingFeed: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
     val feedState by viewModel.feedState.collectAsState()
+    val extractionDataState by viewModel.extractionDataState.collectAsState()
     
     LaunchedEffect(Unit) {
         scope.launch {
             val token = authRepository.getAuthToken()
             if (token != null) {
-                viewModel.loadFeed(token)
+                if (useFollowingFeed) {
+                    viewModel.loadFollowingFeed(token)
+                } else {
+                    viewModel.loadFeed(token)
+                }
             }
         }
     }
@@ -104,7 +112,8 @@ fun SocialFeedScreen(
                                     }
                                 },
                                 onComment = {}, // No se usa más el modal
-                                authRepository = authRepository
+                                authRepository = authRepository,
+                                onFollowRecipe = onFollowRecipe
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -121,10 +130,13 @@ fun PostCard(
     onLike: () -> Unit,
     onComment: () -> Unit,
     authRepository: AuthRepository,
-    viewModel: SocialViewModel = hiltViewModel()
+    viewModel: SocialViewModel = hiltViewModel(),
+    onFollowRecipe: (PostExtractionData) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
-    val commentsState by viewModel.commentsState.collectAsState()
+    val commentsStateMap by viewModel.commentsStateMap.collectAsState()
+    val commentsState = commentsStateMap[post.id] ?: CommentsUiState.Idle
+    val extractionDataState by viewModel.extractionDataState.collectAsState()
     var showAllComments by remember { mutableStateOf(false) }
     var showCommentInput by remember { mutableStateOf(false) }
     var commentText by remember { mutableStateOf("") }
@@ -223,7 +235,7 @@ fun PostCard(
                 color = Color.LightGray.copy(alpha = 0.5f)
             )
             
-            // Botones: Like y Comentar
+            // Botones: Like, Comentar y Seguir Receta
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -273,6 +285,55 @@ fun PostCard(
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
+                }
+            }
+            
+            // Botón "Seguir receta" si el post tiene extractionId
+            post.extractionId?.let { extractionId ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val token = authRepository.getAuthToken()
+                            if (token != null) {
+                                viewModel.loadPostExtractionData(token, post.id)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF6F4E37)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = "Seguir receta",
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Seguir receta",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+                
+                // Mostrar datos de extracción cuando se carguen
+                when (val state = extractionDataState) {
+                    is com.upc.xantina.features.social.presentation.state.ExtractionDataUiState.Success -> {
+                        if (state.data.recetaId == extractionId || state.data.recetaId == null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LaunchedEffect(state.data) {
+                                onFollowRecipe(state.data)
+                                // Resetear el estado después de pasar los datos
+                                viewModel.resetExtractionDataState()
+                            }
+                        }
+                    }
+                    else -> {}
                 }
             }
             
@@ -406,7 +467,8 @@ fun CommentsDialog(
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val commentsState by viewModel.commentsState.collectAsState()
+    val commentsStateMap by viewModel.commentsStateMap.collectAsState()
+    val commentsState = commentsStateMap[post.id] ?: CommentsUiState.Idle
     var commentText by remember { mutableStateOf("") }
     var selectedComment by remember { mutableStateOf<Comment?>(null) }
     
